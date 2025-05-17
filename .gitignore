@@ -1,0 +1,22 @@
+# Node modules
+node_modules/  # <-- Quita la barra inicial (/)
+# O, si quieres ser más explícito para cualquier nivel:
+# **/node_modules/
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+# .vscode/ # Ya lo tienes arriba, puedes eliminar esta línea duplicada
+# .idea/   # Ya lo tienes arriba, puedes eliminar esta línea duplicada
+
+# Variables de entorno
+.env
+
+# Logs y archivos generados (añadimos los que vimos antes)
+logs/
+*.log
+node_modules

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # cliente React en hot-reload
+  client:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./client:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - HOST=0.0.0.0
+    command: sh -c "npm install && npm start"
+    networks:
+      - app-network
+
+  # API con nodemon
+  api:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./server:/app
+    env_file:
+      - ./server/.env
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - FRONTEND_URL=http://client:3000
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - app-network
+
+  # Base de datos
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=datos_api
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  # Redis
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network: {}

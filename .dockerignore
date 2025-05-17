@@ -1,0 +1,14 @@
+   # Ignorar todas las node_modules para no enviarlas al contexto Docker
+   node_modules
+   **/node_modules
+
+   # Ignorar logs y cachés innecesarios
+   npm-debug.log*
+   yarn-debug.log*
+   yarn-error.log*
+   .DS_Store
+
+   # Ignorar Git y archivos de entorno
+   .git
+   .gitignore
+   .env*
