@@ -3,7 +3,7 @@ const moment = require('moment-timezone');
 const aytRepository = require('../repositories/aytRepository');
 const nombreVariables = require('../config/nombreVariables');
 const aytAuthService = require('./aytAuthService');
-const apiErrorLogger = require('../utils/apiErrorLogger');
+const { aytErrorHandler } = require('../errorHandlers');
 
 class AytService {
     constructor() {
@@ -82,11 +82,9 @@ class AytService {
             let response = await axios.request(config);
             const datos = response.data;
             
-            if (!datos || datos.length === 0) {
-                apiErrorLogger.logEmptyResponse('AYT', station);
-                return null;
-            }
-            
+            // Usar el errorHandler para manejar la respuesta
+            aytErrorHandler.handleError(station, response);
+
             return datos[datos.length - 1];
         } catch (error) {
             if (error.response?.status === 401) {
@@ -101,12 +99,14 @@ class AytService {
                     const datos = response.data;
                     return datos[datos.length - 1];
                 } catch (retryError) {
-                    apiErrorLogger.logConnectionError('AYT', station, retryError);
+                    // Usar el errorHandler para manejar el error de reintento
+                    aytErrorHandler.handleError(station, null, retryError);
                     return null;
                 }
             }
             
-            apiErrorLogger.logConnectionError('AYT', station, error);
+            // Usar el errorHandler para manejar el error original
+            aytErrorHandler.handleError(station, null, error);
             return null;
         }
     }
@@ -146,7 +146,8 @@ class AytService {
                 }
             } catch (error) {
                 const station = this.getStationFromTag(tag);
-                apiErrorLogger.logConnectionError('AYT', station, error);
+                // Usar el errorHandler para manejar el error
+                aytErrorHandler.handleError(station, null, error);
                 continue;
             }
         }
@@ -159,4 +160,4 @@ class AytService {
     }
 }
 
-module.exports = new AytService(); 
+module.exports = new AytService();

@@ -1,7 +1,7 @@
 const axios = require('axios');
 const moment = require('moment-timezone');
 const nombreVariables = require('../config/nombreVariables');
-const apiErrorLogger = require('../utils/apiErrorLogger');
+const { sercoambErrorHandler } = require('../errorHandlers');
 
 class SercoambService {
     constructor() {
@@ -49,27 +49,14 @@ class SercoambService {
 
             const response = await axios.request(config);
             
-            if (!response.data || response.data.length === 0) {
-                apiErrorLogger.logEmptyResponse('Sercoamb', 'Tamentica');
-            }
-
-            // Verificar si todos los datos son inválidos
-            const todosInvalidos = response.data.every(item => 
-                item.data.every(record => 
-                    record['Time Of Record'] === "automataMensajes.wsdl.dataCell"
-                )
-            );
-
-            if (todosInvalidos) {
-                console.log('Todos los datos recibidos de Tamentica son inválidos (automataMensajes.wsdl.dataCell)');
-                return [];
-            }
+            // Usar el errorHandler para manejar la respuesta
+            sercoambErrorHandler.handleError('Tamentica', response);
 
             const filteredData = this.filterDataTamentica(response.data);
             return this.transformarDatosTamentica(filteredData);
         } catch (error) {
-            apiErrorLogger.logConnectionError('Sercoamb', 'Tamentica', error);
-            console.error('Error al consultar API Tamentica:', error.message);
+            // Usar el errorHandler para manejar el error
+            sercoambErrorHandler.handleError('Tamentica', null, error);
             return [];
         }
     }
@@ -96,7 +83,8 @@ class SercoambService {
         console.log(`Datos filtrados: ${filtrados.length} registros válidos de ${data.length} totales`);
         return filtrados;
     }
-     transformarDatosTamentica(filteredData) {
+
+    transformarDatosTamentica(filteredData) {
         // Si no hay datos válidos, retornar array vacío
         if (filteredData.length === 0) {
             console.log('No hay datos válidos para transformar en Tamentica');
@@ -128,17 +116,16 @@ class SercoambService {
 
                     const nombreEstandarizado = nombreVariables[key] || key;
                     datosValidos.push([
-                        moment().format('YYYY-MM-DD HH:mm:ss'), // Usar timestamp actual ya que los datos son inválidos
+                        moment().format('YYYY-MM-DD HH:mm:ss'),
                         'E9',
                         nombreEstandarizado,
-                        0 // Usar 0 como valor por defecto o podrías usar null
+                        0
                     ]);
                 });
             });
         });
 
-        console.log(`No se encontraron datos válidos en la respuesta de Tamentica. Usando valores por defecto.`);
-        return [];
+        return datosValidos;
     }
 
     async consultarAPIVictoria() {
@@ -162,15 +149,14 @@ class SercoambService {
             };
 
             const response = await axios.request(config);
-            console.log('Respuesta de Victoria stado:', response.status);
-            if (!response.data?.data?.Data) {
-                apiErrorLogger.logEmptyResponse('Sercoamb', 'Victoria');
-                return [];
-            }
+            
+            // Usar el errorHandler para manejar la respuesta
+            sercoambErrorHandler.handleError('Victoria', response);
+
             return this.transformarDatosVictoria(response.data.data.Data);
         } catch (error) {
-            apiErrorLogger.logConnectionError('Sercoamb', 'Victoria', error);
-            console.error('Error al consultar API Victoria:', error.message);
+            // Usar el errorHandler para manejar el error
+            sercoambErrorHandler.handleError('Victoria', null, error);
             return [];
         }
     }
@@ -180,7 +166,7 @@ class SercoambService {
             console.log('Los datos de Victoria no son un array');
             return [];
         }
-        console.log('Transformando Datos de Victoria:');
+
         return dataArray
             .filter(item => {
                 // Validar que existan todos los campos necesarios

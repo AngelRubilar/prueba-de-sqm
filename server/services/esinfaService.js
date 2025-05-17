@@ -3,7 +3,7 @@ const moment = require('moment-timezone');
 const nombreEstaciones = require('../config/nombreEstaciones');
 const nombreVariables = require('../config/nombreVariables');
 const esinfaAuthService = require('./esinfaAuthService');
-const apiErrorLogger = require('../utils/apiErrorLogger');
+const { esinfaErrorHandler } = require('../errorHandlers');
 
 class EsinfaService {
   constructor() {
@@ -17,8 +17,6 @@ class EsinfaService {
 
   async consultarAPI() {
     try {
-      console.log('Consultando API Esinfa...');
-      
       // Obtener token actualizado
       const token = await esinfaAuthService.getToken();
       
@@ -32,36 +30,33 @@ class EsinfaService {
         }
       };
 
-      //console.log('Enviando petición a la API Esinfa...');
       let response = await axios.request(config);
 
       if (response.status === 500) {
-        //console.log('Error 500, intentando renovar token...');
         const newToken = await esinfaAuthService.obtenerNuevoToken();
         config.headers['Authorization'] = `Bearer ${newToken}`;
         response = await axios.request(config);
       }
 
-      if (!response.data || response.data.length === 0) {
-        apiErrorLogger.logEmptyResponse('Esinfa', 'Hospital');
-      }
+      // Usar el errorHandler para manejar la respuesta
+      esinfaErrorHandler.handleError(response);
 
       return this.transformarRespuesta(response.data);
     } catch (error) {
-      apiErrorLogger.logConnectionError('Esinfa', 'Hospital', error);
       if (error.response && error.response.status === 500) {
         try {
-          //console.log('Error 500, intentando renovar token...');
           const newToken = await esinfaAuthService.obtenerNuevoToken();
           this.config.headers['Authorization'] = `Bearer ${newToken}`;
           const response = await axios.request(this.config);
           return this.transformarRespuesta(response.data);
         } catch (retryError) {
-          //console.error('Error al reintentar la solicitud:', retryError.message);
+          // Usar el errorHandler para manejar el error de reintento
+          esinfaErrorHandler.handleError(null, retryError);
           throw retryError;
         }
       }
-      //console.error('Error al consultar API Esinfa:', error.message);
+      // Usar el errorHandler para manejar el error original
+      esinfaErrorHandler.handleError(null, error);
       throw error;
     }
   }
@@ -73,8 +68,6 @@ class EsinfaService {
         console.error('Respuesta inválida de la API:', data);
         return datosArray;
       }
-
-      console.log(`Procesando ${data.length} estaciones de Esinfa`);
 
       for (const resultado of data) {
         try {
@@ -117,7 +110,6 @@ class EsinfaService {
         }
       }
 
-      console.log(`Datos transformados exitosamente: ${datosArray.length} registros`);
       return datosArray;
     } catch (error) {
       console.error('Error al transformar respuesta:', error.message);
@@ -127,12 +119,9 @@ class EsinfaService {
 
   async fetchAllDevices() {
     try {
-      console.log('Iniciando obtención de datos de todas las estaciones Esinfa...');
       const datosArray = await this.consultarAPI();
-      console.log(`Datos obtenidos exitosamente: ${datosArray.length} registros`);
       return datosArray;
     } catch (error) {
-      console.error('Error al obtener datos de todas las estaciones:', error.message);
       throw error;
     }
   }
