@@ -15,7 +15,7 @@ class ApiErrorLogger {
     }
 
     getLogFileName() {
-        return `api_errors_${moment().format('YYYY-MM-DD')}.log`;
+        return `api_errors_${moment().tz('America/Santiago').format('YYYY-MM-DD')}.log`;
     }
 
     logError(apiName, stationName, errorType, errorDetails) {
