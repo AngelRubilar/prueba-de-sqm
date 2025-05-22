@@ -1,0 +1,85 @@
+# docker/development/docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/development/server/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../server/.env
+    environment:
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5ZIouKbZ42QdkLM
+      - DB_HOST=${DB_HOST:-db}
+      - DB_NAME=${DB_NAME:-datos_api}
+      - DB_WRITER_USER=api_writer
+      - DB_WRITER_PASSWORD=25euk3i6Yz3496W
+      - DB_READER_USER=graphics_reader
+      - DB_READER_PASSWORD=DSQrSsXyPFfQrNb
+    volumes:
+      - ../../server:/app/server
+      - ../../client:/app/client
+      - ../../package.json:/app/package.json
+      - ../../package-lock.json:/app/package-lock.json
+      - /app/node_modules
+      - api_logs:/app/server/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    container_name: node-api
+    working_dir: /app
+    command: sh -c "cd /app/client && rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && npm run build && cd /app/server && npm run dev"
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: datos_api
+    volumes:
+      - db_data:/var/lib/mysql
+      - ../../mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    container_name: mysql-api
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6381:6379"
+    volumes:
+      - ../../config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    networks:
+      - app-network
+    container_name: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "5ZIouKbZ42QdkLM", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db_data:
+    name: sqmapp_db_data 
+  api_logs:
+
+networks:
+  app-network: {}

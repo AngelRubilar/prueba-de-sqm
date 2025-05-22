@@ -1,16 +1,31 @@
 {
     "private": true,
     "workspaces": [
-      "server",
-      "client"
+        "server",
+        "client"
     ],
     "devDependencies": {
-      "concurrently": "^6.5.1"
+        "concurrently": "^6.5.1",
+        "nodemon": "^3.0.2"
     },
     "scripts": {
-      "dev": "npm --workspace server run dev",
-      "start:server": "npm --workspace server run start",
-      "start:client": "npm --workspace client run start",
-      "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+        "dev": "npm --workspace server run dev",
+        "start:server": "npm --workspace server run start",
+        "start:client": "npm --workspace client run start",
+        "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+        "send-report": "node server/scripts/sendLogReport.js",
+        "build": "npm run build:client && npm run build:server",
+        "build:client": "npm --workspace client run build",
+        "build:server": "npm --workspace server run build"
+    },
+    "name": "sqm-api",
+    "version": "1.0.0",
+    "description": "API para el sistema SQM",
+    "main": "server/index.js",
+    "dependencies": {
+        "csv-writer": "^1.6.0",
+        "dotenv": "^16.3.1",
+        "moment-timezone": "^0.5.43",
+        "nodemailer": "^6.10.1"
     }
-  }
+}

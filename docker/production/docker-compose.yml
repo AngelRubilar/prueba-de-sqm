@@ -1,0 +1,77 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/production/server/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../server/.env.production
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_NAME=${DB_NAME:-datos_api}
+      - DB_WRITER_USER=${DB_WRITER_USER}
+      - DB_WRITER_PASSWORD=${DB_WRITER_PASSWORD}
+      - DB_READER_USER=${DB_READER_USER}
+      - DB_READER_PASSWORD=${DB_READER_PASSWORD}
+    volumes:
+      - api_logs:/app/server/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    container_name: node-api-prod
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-datos_api}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ../../mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    container_name: mysql-api-prod
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6381:6379"
+    volumes:
+      - ../../config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    networks:
+      - app-network
+    container_name: redis-prod
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  api_logs:
+
+networks:
+  app-network: {}
