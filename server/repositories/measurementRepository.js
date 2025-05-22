@@ -1,10 +1,10 @@
 const { readerPool } = require('../config/database');
-const redisClient = require('../config/redis');
+const { redisClient, checkRedisConnection } = require('../config/redis');
 
 /**
  * Obtiene todas las mediciones de una variable en un rango opcional de fechas.
  */
-async function getMeasurementsByVariable({ variable, from, to }) {
+/* async function getMeasurementsByVariable({ variable, from, to }) {
   const key = `measurements:${variable}`;
   // 1. Obtener el último timestamp almacenado en Redis
   const latest = await redisClient.zrevrange(key, 0, 0, 'WITHSCORES');
@@ -34,7 +34,93 @@ async function getMeasurementsByVariable({ variable, from, to }) {
   const cacheItems = await redisClient.zrangebyscore(key, startScore, endScore);
   const results = cacheItems.map(item => JSON.parse(item));
   return results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-}
+} */
+  async function getMeasurementsByVariable({ variable, from, to }) {
+    try {
+      // Verificar conexión a Redis
+      const isRedisWorking = await checkRedisConnection();
+      if (!isRedisWorking) {
+        console.log('[Redis] No está respondiendo, usando base de datos directamente');
+        return await getDataFromDatabase(variable, from, to);
+      }
+  
+      const key = `measurements:${variable}`;
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  
+      // 1. Obtener último timestamp de Redis
+      const latest = await redisClient.zrevrange(key, 0, 0, 'WITHSCORES');
+      const lastTs = latest.length === 2 ? Number(latest[1]) : null;
+  
+      console.log(`[Redis] Último timestamp para ${variable}:`, lastTs ? new Date(lastTs) : 'No hay datos');
+  
+      // 2. Obtener datos de la base de datos si es necesario
+      let newRows = [];
+      if (!lastTs || (from && new Date(from).getTime() < lastTs)) {
+        console.log(`[Redis] Obteniendo datos de BD para ${variable}`);
+        newRows = await getDataFromDatabase(variable, from, to);
+        
+        // 3. Almacenar en Redis
+        if (newRows.length > 0) {
+          console.log(`[Redis] Almacenando ${newRows.length} registros para ${variable}`);
+          
+          // Crear un pipeline para operaciones múltiples
+          const pipeline = redisClient.pipeline();
+          
+          // Preparar los datos para Redis
+          for (const row of newRows) {
+            const score = new Date(row.timestamp).getTime();
+            const member = JSON.stringify(row);
+            pipeline.zadd(key, score, member);
+          }
+          
+          // Ejecutar todas las operaciones
+          await pipeline.exec();
+          console.log(`[Redis] Datos almacenados exitosamente para ${variable}`);
+        }
+      }
+  
+      // 4. Limpiar datos antiguos de Redis
+      await redisClient.zremrangebyscore(key, 0, sevenDaysAgo);
+      console.log(`[Redis] Limpieza de datos antiguos completada para ${variable}`);
+  
+      // 5. Obtener datos del rango solicitado
+      const startScore = from ? new Date(from).getTime() : sevenDaysAgo;
+      const endScore = to ? new Date(to).getTime() : Date.now();
+  
+      console.log(`[Redis] Obteniendo datos para ${variable} desde ${new Date(startScore)} hasta ${new Date(endScore)}`);
+      
+      const cacheItems = await redisClient.zrevrangebyscore(key, endScore, startScore);
+      console.log(`[Redis] Obtenidos ${cacheItems.length} registros de Redis para ${variable}`);
+  
+      // Verificar si obtuvimos datos de Redis
+      if (cacheItems.length === 0) {
+        console.log(`[Redis] No hay datos en caché para ${variable}, obteniendo de BD`);
+        return await getDataFromDatabase(variable, from, to);
+      }
+  
+      return cacheItems.map(item => JSON.parse(item));
+    } catch (error) {
+      console.error(`[Redis] Error en getMeasurementsByVariable para ${variable}:`, error);
+      // Si hay error con Redis, fallback a base de datos
+      return await getDataFromDatabase(variable, from, to);
+    }
+  }
+  
+  // Función auxiliar para obtener datos directamente de la base de datos
+  async function getDataFromDatabase(variable, from, to) {
+    let sql, params;
+    if (from && to) {
+      sql = 'SELECT * FROM datos WHERE variable_name = ? AND timestamp BETWEEN ? AND ? ORDER BY timestamp DESC';
+      params = [variable, new Date(from), new Date(to)];
+    } else {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      sql = 'SELECT * FROM datos WHERE variable_name = ? AND timestamp >= ? ORDER BY timestamp DESC';
+      params = [variable, sevenDaysAgo];
+    }
+    
+    const [rows] = await readerPool.query(sql, params);
+    return rows;
+  }
 
 /**
  * Obtiene datos de viento (dirección y velocidad) en un rango opcional de fechas.
