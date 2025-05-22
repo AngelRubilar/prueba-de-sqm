@@ -12,7 +12,7 @@ windbarb(Highcharts);
 exporting(Highcharts);
 offlineExporting(Highcharts); // Inicializa el módulo offline
 
-const WindRoseChart = ({ data, title }) => {
+const WindRoseChart = ({ data, title, width, height }) => {
   console.log('Datos recibidos por WindRoseChart:', data); // Verifica los datos recibidos
 
   // Ajusta los datos al formato esperado por Highcharts
@@ -23,7 +23,8 @@ const WindRoseChart = ({ data, title }) => {
   const options = {
     chart: {
       type: 'windbarb',
-      height: 300,
+      width: width,
+      height: height,
     },
     title: {
       text: title,

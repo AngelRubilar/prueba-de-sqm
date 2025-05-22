@@ -9,9 +9,9 @@ const defaultZones = [
   { value: 10000, color: '#8a3d92' },
 ];
 
-const AreaChart = ({ data, title, yAxisTitle = 'PM10 (µg/m³)', zones = defaultZones }) => {
+const AreaChart = ({ data, title, yAxisTitle = 'PM10 (µg/m³)', zones = defaultZones, width, height }) => {
   const options = {
-    chart: { type: 'area', zoomType: 'x', animation: false },
+    chart: { type: 'area', zoomType: 'x', animation: false, width: width, height: height },
     title: { text: title },
     xAxis: { type: 'datetime', ordinal: false },
     yAxis: {
@@ -40,6 +40,7 @@ const AreaChart = ({ data, title, yAxisTitle = 'PM10 (µg/m³)', zones = default
         name: yAxisTitle,
         data,
         turboThreshold: 0,
+        connectNulls: false,
         tooltip: { valueSuffix: ' µg/m³' },
         zones,
       },

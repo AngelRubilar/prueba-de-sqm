@@ -14,10 +14,11 @@ root.render(<App />); */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import './config/highchartsConfig'; // importar la configuración de Highcharts
+import './config/highchartsConfig';
 import PM10View from './page/PM10View';
 import WindView from './page/WindView';
-import SO2View from './page/SO2View'; // Asegúrate de que este archivo exista
+import SO2View from './page/SO2View';
+import CombinedView from './page/CombinedView'; // Nueva importación
 import './index.css';
 
 const container = document.getElementById('root');
@@ -26,6 +27,7 @@ const root = createRoot(container);
 root.render(
   <Router basename="/react">
     <Routes>
+      <Route path="/" element={<CombinedView />} /> {/* Nueva ruta por defecto */}
       <Route path="/pm10" element={<PM10View />} />
       <Route path="/viento" element={<WindView />} />
       <Route path="/so2" element={<SO2View />} />
