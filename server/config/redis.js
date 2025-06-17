@@ -6,23 +6,63 @@ const redisClient = new Redis({
   port: process.env.REDIS_PORT || 6379,
   password: process.env.REDIS_PASSWORD,
   retryStrategy: function(times) {
-    // Intentar reconectar cada 1 segundo, hasta un máximo de 10 segundos
     const delay = Math.min(times * 1000, 10000);
     console.log(`Intentando reconectar a Redis en ${delay}ms...`);
     return delay;
   },
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: 5,
   enableReadyCheck: true,
-  connectTimeout: 10000, // 10 segundos de timeout para la conexión inicial
-  commandTimeout: 5000,  // 5 segundos de timeout para comandos
+  connectTimeout: 20000,
+  commandTimeout: 10000,
   reconnectOnError: function(err) {
     const targetError = 'READONLY';
     if (err.message.includes(targetError)) {
-      return true; // Reconectar cuando el error es READONLY
+      return true;
     }
     return false;
   }
 });
+
+// Agregar la función de diagnóstico aquí
+async function diagnoseRedisConfig() {
+    try {
+        const config = await redisClient.config('GET', '*');
+        console.log('[Redis] Configuración actual:', {
+            maxmemory: config.find(c => c[0] === 'maxmemory')[1],
+            maxmemoryPolicy: config.find(c => c[0] === 'maxmemory-policy')[1],
+            appendonly: config.find(c => c[0] === 'appendonly')[1],
+            appendfsync: config.find(c => c[0] === 'appendfsync')[1]
+        });
+
+        const info = await redisClient.info();
+        console.log('[Redis] Información del servidor:', {
+            version: info.redis_version,
+            mode: info.redis_mode,
+            os: info.os,
+            arch: info.arch_bits,
+            processId: info.process_id
+        });
+
+        const memory = await redisClient.info('memory');
+        console.log('[Redis] Estado de memoria:', {
+            usedMemory: formatBytes(memory.used_memory),
+            usedMemoryPeak: formatBytes(memory.used_memory_peak),
+            maxmemory: formatBytes(memory.maxmemory),
+            maxmemoryPolicy: memory.maxmemory_policy
+        });
+    } catch (error) {
+        console.error('[Redis] Error al obtener diagnóstico:', error);
+    }
+}
+
+// Función auxiliar para formatear bytes
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 // Mejorar el manejo de eventos con más información
 redisClient.on('error', (err) => {
@@ -43,6 +83,8 @@ redisClient.on('connect', () => {
 
 redisClient.on('ready', () => {
   console.log('Redis está listo para recibir comandos');
+  // Ejecutar diagnóstico cuando Redis está listo
+  diagnoseRedisConfig();
 });
 
 redisClient.on('reconnecting', (params) => {
@@ -96,8 +138,9 @@ async function checkRedisConnection() {
 checkRedisConnection();
 setInterval(checkRedisConnection, 5 * 60 * 1000);
 
-// Exportar tanto el cliente como la función de verificación
+// Exportar tanto el cliente como las funciones de verificación
 module.exports = {
   redisClient,
-  checkRedisConnection
+  checkRedisConnection,
+  diagnoseRedisConfig  // Exportar la función de diagnóstico
 };
