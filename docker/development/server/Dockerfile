@@ -1,30 +1,46 @@
-# docker/development/server.Dockerfile
+# Usar una imagen base de Node.js
 FROM node:18
 
-# Configuración para evitar advertencias de npm
-ENV NPM_CONFIG_FUND=false \
-    NPM_CONFIG_UPDATE_NOTIFIER=false \
-    NPM_CONFIG_LEGACY_PEER_DEPS=true
+# Establecer variables de entorno
+ENV NODE_ENV=development
+ENV PYTHONUNBUFFERED=1
 
-# Establece el directorio de trabajo en la raíz del monorepo dentro del contenedor
-# Esto es crucial porque las dependencias del monorepo se instalan aquí.
+# Instalar Python y dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    python3-full \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear y activar un entorno virtual de Python
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Crear directorio de trabajo
 WORKDIR /app
 
-# Copia los package.json de la raíz y de los workspaces (server, client).
-# El contexto de construcción en docker-compose.yml (context: ../..)
-# se encargará de que estos archivos estén disponibles para ser copiados.
-COPY package.json package-lock.json ./
-COPY server/package.json ./server/
-COPY client/package.json ./client/
- # ¡IMPORTANTE! Asegúrate de incluir el cliente aquí
+# Crear directorio para los datos de Python
+RUN mkdir -p /app/server/python/databases && \
+    chmod 777 /app/server/python/databases
 
-# Instala todas las dependencias del monorepo en la raíz.
-# Esto asegura que todos los módulos estén disponibles centralmente.
+# Copiar package.json y package-lock.json
+COPY server/package*.json ./
+
+# Instalar dependencias de Node.js
 RUN npm install
 
-# Exponer el puerto del servidor.
+# Copiar requirements.txt
+COPY server/python/requirements.txt /app/server/python/requirements.txt
+
+# Instalar dependencias de Python en el entorno virtual
+RUN pip install --no-cache-dir -r /app/server/python/requirements.txt
+
+# Copiar el código de la aplicación
+COPY server/ ./server/
+COPY client/ ./client/
+
+# Exponer el puerto
 EXPOSE 3000
 
-# El CMD aquí es solo para mantener el contenedor ejecutándose.
-# La lógica real de inicio del servidor se manejará en docker-compose.yml.
+# Comando para mantener el contenedor corriendo
 CMD ["tail", "-f", "/dev/null"]

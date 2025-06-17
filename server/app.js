@@ -3,6 +3,7 @@ const moment = require('moment-timezone');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 // Controllers
 const serpramController = require('./controllers/serpramController');
@@ -12,23 +13,62 @@ const sercoambController = require('./controllers/sercoambController');
 const reportController = require('./controllers/reportController');
 const { cargarTimestampSerpram, guardarTimestampSerpram } = require('./store');
 const logAnalyzer = require('./utils/logAnalyzer');
+const requestLogger = require('./middleware/requestLogger');
+
+// Inicializar el servicio MQTT correctamente
+const MqttService = require('./services/mqttService');
+const mqttService = new MqttService();
 
 // Rutas Api Rest
 const apiRoutes = require('./routes/apiRoutes');
 
+const forecastScheduler = require('./services/forecastScheduler');
+
 // Iniciamos el servidor express
 const app = express();
+
+// Configurar Express para confiar en el proxy de manera específica
+app.set('trust proxy', 'loopback');
+
+// Configuración de rate limiting para desarrollo (más permisivo)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 500, // límite más alto para desarrollo
+  message: 'Demasiadas peticiones desde esta IP, por favor intente más tarde',
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true,
+  skip: (req) => {
+    // No aplicar rate limiting a las rutas de React
+    return req.path.startsWith('/react/');
+  }
+});
+
+// Middleware
+app.use(requestLogger);
+app.use(limiter);
 
 // Debug: mostrar FRONTEND_URL para verificar configuración
 console.log('>>> FRONTEND_URL =', process.env.FRONTEND_URL);
 
-// Configurar CORS para reflejar siempre el origen de la petición
+// Configurar CORS para desarrollo
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: true, // Más permisivo en desarrollo
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+// Middleware de seguridad (mantenido pero con headers más permisivos para desarrollo)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  //res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Frame-Options', 'ALLOW-FROM http://localhost:3000');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
 app.use('/api', apiRoutes);
 
 // Función para ejecutar Serpram
@@ -93,11 +133,26 @@ async function ejecutarTodasLasConsultas() {
     console.log('\n=== Iniciando ciclo de consultas ===');
     console.log('Hora Chile:', formatearFechaChile());
 
-    await Promise.all([
-      ejecutarSerpram(),
-      ejecutarAyt(),
-      ejecutarSercoamb()
-    ]);
+    // Ejecutar Serpram primero
+    console.log('Iniciando consulta Serpram...');
+    await ejecutarSerpram();
+    console.log('Consulta Serpram completada');
+
+    // Esperar 5 segundos antes de la siguiente consulta
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Ejecutar AYT
+    console.log('Iniciando consulta AYT...');
+    await ejecutarAyt();
+    console.log('Consulta AYT completada');
+
+    // Esperar 5 segundos antes de la siguiente consulta
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Ejecutar Sercoamb
+    console.log('Iniciando consulta Sercoamb...');
+    await ejecutarSercoamb();
+    console.log('Consulta Sercoamb completada');
 
     console.log(`=== Ciclo de consultas completado (${formatearFechaChile()}) ===\n`);
   } catch (error) {
@@ -138,32 +193,42 @@ function programarReporteDiario() {
         setTimeout(enviarReporteDiario, tiempoHastaReporte);
     }
 }
-/* // Servir build de React en producción (misma origen)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-  });
-}
- */
 
-// Configuración para servir archivos estáticos
-if (process.env.NODE_ENV === 'production') {
-  // En producción, servir los archivos estáticos de React
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  app.get('*', (req, res) => {
+// Configuración para servir archivos estáticos en desarrollo
+if (process.env.NODE_ENV === 'development') {
+  console.log('Configurando rutas para desarrollo...');
+  console.log('Ruta del build:', path.join(__dirname, '../client/build'));
+  
+  // Servir archivos estáticos de React bajo la ruta /react
+  app.use('/react', express.static(path.join(__dirname, '../client/build')));
+  
+  // Manejar todas las rutas de React
+  app.get('/react/*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
   });
-} else {
-  // En desarrollo, solo servir la API
-  app.use('/api', apiRoutes);
+
+  // Manejar la ruta raíz redirigiendo a /react
+  app.get('/', (req, res) => {
+    res.redirect('/react');
+  });
 }
+
+// Manejador de errores global
+app.use((err, req, res, next) => {
+  console.error('Error global:', err);
+  res.status(500).json({
+    error: 'Error interno del servidor',
+    message: err.message // En desarrollo mostramos el mensaje de error completo
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor iniciado en puerto ${PORT}`);
   console.log('Hora Chile:', formatearFechaChile());
+  console.log('Ambiente: Desarrollo');
   
+   
   // Ejecutar inmediatamente las consultas iniciales
   ejecutarEsinfa();
   ejecutarTodasLasConsultas();
@@ -174,4 +239,31 @@ app.listen(PORT, () => {
   
   // Iniciar programación de reportes diarios
   programarReporteDiario();
+
+  // Iniciar el programador de pronóstico
+  forecastScheduler.start();
+});
+
+// Manejo de señales de terminación
+process.on('SIGTERM', () => {
+  console.log('Recibida señal SIGTERM. Cerrando servidor...');
+  forecastScheduler.stop();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Recibida señal SIGINT. Cerrando servidor...');
+  forecastScheduler.stop();
+  process.exit(0);
+});
+
+// Manejo de errores no capturados
+process.on('uncaughtException', (err) => {
+  console.error('Error no capturado:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Promesa rechazada no manejada:', reason);
+  process.exit(1);
 });
