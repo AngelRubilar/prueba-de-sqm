@@ -1,6 +1,3 @@
-# docker/development/docker-compose.yml
-version: '3.8'
-
 services:
   app:
     build:
@@ -74,6 +71,7 @@ services:
       - "6381:6379"
     volumes:
       - ../../config/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     networks:
       - app-network
@@ -113,6 +111,8 @@ volumes:
     name: sqmapp_db_data
   api_logs:
     name: sqmapp_api_logs
+  redis_data:
+    name: sqmapp_redis_data
   python_data:  # Nuevo volumen para los datos de Python
     name: sqmapp_python_data
 
