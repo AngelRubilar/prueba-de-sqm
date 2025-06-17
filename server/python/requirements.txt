@@ -1,0 +1,8 @@
+pandas
+prophet
+requests
+plotly
+python-dateutil
+numpy
+scikit-learn
+pyarrow

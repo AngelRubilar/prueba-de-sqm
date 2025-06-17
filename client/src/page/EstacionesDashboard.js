@@ -5,44 +5,79 @@ import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import mapaHuara from '../assets/estacionsqm.png';
 
+// Mapeo de códigos de estación a nombres usados en forecastData
+const stationKeyMap = {
+  E6: 'Huara',
+  E7: 'Victoria',
+  E8: 'Colonia Pintados'
+};
+
 function EstacionesDashboard() {
   const [pm10Data, setPm10Data] = useState([]);
   const [so2Data, setSo2Data] = useState([]);
   const [windData, setWindData] = useState([]);
   const [forecastData, setForecastData] = useState({
-    forecast: [],
-    real: [],
-    range: []
+    'Huara': { forecast: [], real: [], range: [] },
+    'Victoria': { forecast: [], real: [], range: [] },
+    'Colonia Pintados': { forecast: [], real: [], range: [] }
   });
   const [loading, setLoading] = useState(true);
   const [currentGroup, setCurrentGroup] = useState(0);
 
+  // Función para cargar datos de PM10, SO2 y Viento (cada 5 minutos)
+  const cargarDatosPrincipales = async () => {
+    try {
+      const [pm10, so2, viento] = await Promise.all([
+        fetchPM10Data(),
+        fetchSO2Data(),
+        fetchVientoData()
+      ]);
+      setPm10Data(pm10);
+      setSo2Data(so2);
+      setWindData(viento);
+    } catch (error) {
+      console.error('Error al cargar datos principales:', error);
+    }
+  };
+
+  // Función para cargar datos de pronóstico (cada 1 hora)
+  const cargarDatosPronostico = async () => {
+    try {
+      const pronostico = await fetchForecastData();
+      setForecastData(pronostico);
+    } catch (error) {
+      console.error('Error al cargar datos de pronóstico:', error);
+    }
+  };
+
+  // Carga inicial de todos los datos
   useEffect(() => {
-    async function cargarDatos() {
+    async function cargarDatosIniciales() {
       setLoading(true);
       try {
-        const [pm10, so2, viento, pronostico] = await Promise.all([
-          fetchPM10Data(),
-          fetchSO2Data(),
-          fetchVientoData(),
-          fetchForecastData()
+        await Promise.all([
+          cargarDatosPrincipales(),
+          cargarDatosPronostico()
         ]);
-        console.log("datos pronosticos: ", pronostico);
-        setPm10Data(pm10);
-        setSo2Data(so2);
-        setWindData(viento);
-        setForecastData(pronostico);
       } catch (error) {
-        console.error('Error al cargar datos:', error);
+        console.error('Error al cargar datos iniciales:', error);
       } finally {
         setLoading(false);
       }
     }
-    cargarDatos();
+    cargarDatosIniciales();
+  }, []);
 
-    // Actualizar datos cada 5 minutos
-    const interval = setInterval(cargarDatos, 300000);
-    return () => clearInterval(interval);
+  // Intervalo para datos principales (PM10, SO2, Viento) - cada 5 minutos
+  useEffect(() => {
+    const intervalPrincipales = setInterval(cargarDatosPrincipales, 300000); // 5 minutos
+    return () => clearInterval(intervalPrincipales);
+  }, []);
+
+  // Intervalo para datos de pronóstico - cada 1 hora
+  useEffect(() => {
+    const intervalPronostico = setInterval(cargarDatosPronostico, 3600000); // 1 hora
+    return () => clearInterval(intervalPronostico);
   }, []);
 
   useEffect(() => {
@@ -90,6 +125,70 @@ function EstacionesDashboard() {
     return shouldShowForecast(station) ? 150 : 300; // 300px para estaciones sin pronóstico
   };
 
+  // Función para obtener datos de pronóstico por estación
+  const getForecastDataForStation = (stationKey) => {
+    const stationData = forecastData[stationKey];
+    if (!stationData) {
+      return {
+        forecast: [],
+        real: [],
+        range: []
+      };
+    }
+    const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+  
+    // Filtrar, eliminar nulos y ordenar para forecast
+    const forecastRaw = stationData.forecast
+      .filter(d => d[0] >= twoDaysAgo && d[1] !== null && !isNaN(d[1]))
+      .sort((a, b) => a[0] - b[0]);
+    // Eliminar duplicados en forecast
+    const uniqueForecast = [];
+    const seenForecastTimestamps = new Set();
+    for (const point of forecastRaw) {
+      if (!seenForecastTimestamps.has(point[0])) {
+        uniqueForecast.push(point);
+        seenForecastTimestamps.add(point[0]);
+      }
+    }
+  
+    // Filtrar, eliminar nulos y ordenar para real
+    const realRaw = stationData.real
+      .filter(d => d[0] >= twoDaysAgo && d[1] !== null && !isNaN(d[1]))
+      .sort((a, b) => a[0] - b[0]);
+    const uniqueReal = [];
+    const seenRealTimestamps = new Set();
+    for (const point of realRaw) {
+      if (!seenRealTimestamps.has(point[0])) {
+        uniqueReal.push(point);
+        seenRealTimestamps.add(point[0]);
+      }
+    }
+  
+    // Filtrar, eliminar nulos y ordenar para range
+    const rangeRaw = stationData.range
+      .filter(d =>
+        d[0] >= twoDaysAgo &&
+        d[1] !== null && d[2] !== null &&
+        !isNaN(d[1]) && !isNaN(d[2])
+      )
+      .sort((a, b) => a[0] - b[0]);
+    // Eliminar duplicados en range
+    const uniqueRange = [];
+    const seenRangeTimestamps = new Set();
+    for (const point of rangeRaw) {
+      if (!seenRangeTimestamps.has(point[0])) {
+        uniqueRange.push(point);
+        seenRangeTimestamps.add(point[0]);
+      }
+    }
+  
+    return {
+      forecast: uniqueForecast,
+      real: uniqueReal,
+      range: uniqueRange
+    };
+  };
+
   if (loading) return <div>Cargando datos...</div>;
 
   // Dividir las estaciones en grupos de 4
@@ -112,7 +211,11 @@ function EstacionesDashboard() {
           const viento = getUltimoViento(cfg.station);
           const so2 = getUltimoSO2(cfg.station);
           const showForecast = shouldShowForecast(cfg.station);
-          
+
+          // Mapeo correcto de clave de estación
+          const stationKey = stationKeyMap[cfg.station] || cfg.title;
+          const stationForecastData = getForecastDataForStation(stationKey);
+
           return (
             <div
               key={cfg.station}
@@ -123,7 +226,7 @@ function EstacionesDashboard() {
                 background: '#fff',
                 boxShadow: '0 2px 8px #0001',
                 minWidth: 600,
-                minHeight: showForecast ? 550 : 450, // Altura menor para estaciones sin pronóstico
+                minHeight: showForecast ? 550 : 450,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -161,7 +264,7 @@ function EstacionesDashboard() {
                       fontSize: 12
                     }}>
                       Velocidad: {viento.velocidad} m/s<br />
-                      {viento.timestamp ? new Date(viento.timestamp).toLocaleString() : ''}
+                      {viento.timestamp ? new Date(viento.timestamp).toLocaleString() : 'N/A'}
                     </div>
                   </div>
                   <div style={{ marginTop: 8, textAlign: 'center', fontSize: 16 }}>
@@ -183,9 +286,9 @@ function EstacionesDashboard() {
                       <h4 style={{ margin: 0, fontSize: 16 }}>PRONÓSTICO SO₂</h4>
                       <ForecastChart
                         title={`Pronóstico SO₂ - ${cfg.title}`}
-                        forecastData={forecastData.forecast.filter(d => d[0] >= Date.now() - 2 * 24 * 60 * 60 * 1000)}
-                        realData={forecastData.real.filter(d => d[0] >= Date.now() - 2 * 24 * 60 * 60 * 1000)}
-                        rangeData={forecastData.range.filter(d => d[0] >= Date.now() - 2 * 24 * 60 * 60 * 1000)}
+                        forecastData={stationForecastData.forecast}
+                        realData={stationForecastData.real}
+                        rangeData={stationForecastData.range}
                       />
                     </div>
                   )}

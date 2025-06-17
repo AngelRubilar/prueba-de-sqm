@@ -18,7 +18,8 @@ import './config/highchartsConfig';
 import PM10View from './page/PM10View';
 import WindView from './page/WindView';
 import SO2View from './page/SO2View';
-import CombinedView from './page/CombinedView'; // Nueva importación
+import CombinedView from './page/CombinedView'; 
+import EstacionesDashboard from './page/EstacionesDashboard';
 import './index.css';
 
 const container = document.getElementById('root');
@@ -31,6 +32,7 @@ root.render(
       <Route path="/pm10" element={<PM10View />} />
       <Route path="/viento" element={<WindView />} />
       <Route path="/so2" element={<SO2View />} />
+      <Route path="/estaciones" element={<EstacionesDashboard />} />
     </Routes>
   </Router>
 );

@@ -37,4 +37,7 @@ router.get('/datos-pronostico-SO2', forecastLimiter, forecastController.getSO2Fo
 router.get('/forecast/status', forecastController.getForecastStatus);
 router.post('/forecast/force-update', forecastController.forceForecastUpdate);
 
+// Endpoint de debug para pronósticos (sin rate limit para facilitar debugging)
+router.get('/forecast/debug', forecastController.debugForecastData);
+
 module.exports = router;

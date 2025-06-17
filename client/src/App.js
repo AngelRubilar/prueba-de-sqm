@@ -4,7 +4,7 @@ import PM10View from './pages/PM10View';
 import SO2View from './pages/SO2View';
 import WindView from './pages/WindView';
 import CombinedView from './pages/CombinedView'; // Nueva importación
-
+import EstacionesDashboard from './pages/EstacionesDashboard';
 function App() {
   return (
     <Router>
@@ -23,6 +23,9 @@ function App() {
             <li>
               <Link to="/viento" className="text-purple-700 hover:underline">Viento</Link>
             </li>
+            <li>
+              <Link to="/estaciones" className="text-purple-700 hover:underline">Estaciones</Link>
+            </li>
           </ul>
         </nav>
 
@@ -31,6 +34,7 @@ function App() {
           <Route path="/pm10" element={<PM10View />} />
           <Route path="/so2" element={<SO2View />} />
           <Route path="/viento" element={<WindView />} />
+          <Route path="/estaciones" element={<EstacionesDashboard />} />
         </Routes>
       </div>
     </Router>
