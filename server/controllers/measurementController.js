@@ -32,12 +32,13 @@ async function getSO2Data(req, res, next) {
 
 async function getVariablesData(req, res, next) {
   try {
-    let { from, to, variables } = req.query;
-    if (!variables) {
-      return res.status(400).json({ error: 'Debe especificar variables como CSV en query param' });
-    }
-    const list = variables.split(',').map(v => v.trim());
-    const data = await service.fetchVariables({ variables: list, from, to });
+    const { from, to } = req.query;
+    // Llamar al servicio con las variables por defecto
+    const data = await service.fetchVariables({ 
+      variables: ['HR', 'PM10', 'VV', 'Temperatura', 'SO2'],
+      from, 
+      to 
+    });
     res.json(data);
   } catch (e) {
     next(e);
