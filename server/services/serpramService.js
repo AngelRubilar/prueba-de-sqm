@@ -100,7 +100,7 @@ class SerpramService {
 
   obtenerMarcasDeTiempo() {
     const ahora = moment().tz('America/Santiago');
-    const haceUnMinuto = ahora.clone().subtract(15, 'minutes');
+    const haceUnMinuto = ahora.clone().subtract(5, 'minutes');
     
     return {
       estampaTiempoInicial: haceUnMinuto.format('YYYY-MM-DDTHH:mm:ss'),

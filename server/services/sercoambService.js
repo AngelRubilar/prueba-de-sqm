@@ -32,6 +32,21 @@ class SercoambService {
         try {
             const timestampInicio = moment().subtract(10, 'hours').unix();
             
+            // Verificar que tenemos los datos de configuración
+            /* console.log('=== CONFIGURACIÓN TAMENTICA ===');
+            console.log('Credenciales disponibles:', {
+                terminalID: this.estaciones.tamentica.terminalID,
+                usuario: this.estaciones.tamentica.credentials.usuario,
+                pass: this.estaciones.tamentica.credentials.pass
+            }); */
+    
+            // Verificar que las credenciales existen
+            if (!this.estaciones.tamentica.terminalID || 
+                !this.estaciones.tamentica.credentials.usuario || 
+                !this.estaciones.tamentica.credentials.pass) {
+                throw new Error('Faltan credenciales de configuración para Tamentica');
+            }
+    
             let config = {
                 method: 'post',
                 maxBodyLength: Infinity,
@@ -46,15 +61,36 @@ class SercoambService {
                     pass: this.estaciones.tamentica.credentials.pass
                 })
             };
-
+    
+            /* console.log('=== CONSULTA API TAMENTICA ===');
+            console.log('Configuración de la petición:', {
+                url: config.url,
+                terminalID: config.data.terminalID,
+                timestampInicio: config.data.timeStampInicio,
+                usuario: config.data.usuario
+            });
+     */
             const response = await axios.request(config);
+            
+            //console.log('Respuesta completa de la API:', JSON.stringify(response.data, null, 2));
             
             // Usar el errorHandler para manejar la respuesta
             sercoambErrorHandler.handleError('Tamentica', response);
-
+    
             const filteredData = this.filterDataTamentica(response.data);
-            return this.transformarDatosTamentica(filteredData);
+            //console.log('Datos filtrados:', JSON.stringify(filteredData, null, 2));
+    
+            const transformedData = this.transformarDatosTamentica(filteredData);
+            //console.log('Datos transformados:', JSON.stringify(transformedData, null, 2));
+    
+            return transformedData;
         } catch (error) {
+           /*  console.error('Error en consulta API Tamentica:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                config: error.config?.data // Mostrar los datos que se enviaron
+            }); */
             // Usar el errorHandler para manejar el error
             sercoambErrorHandler.handleError('Tamentica', null, error);
             return [];
@@ -85,46 +121,68 @@ class SercoambService {
     }
 
     transformarDatosTamentica(filteredData) {
-        // Si no hay datos válidos, retornar array vacío
+       // console.log('=== TRANSFORMACIÓN DE DATOS TAMENTICA ===');
+        
         if (filteredData.length === 0) {
-            console.log('No hay datos válidos para transformar en Tamentica');
+            //console.log('No hay datos válidos para transformar en Tamentica');
             return [];
         }
-
+    
         const datosValidos = [];
-
-        filteredData.forEach(item => {
-            item.data.forEach(record => {
+    
+        filteredData.forEach((item, index) => {
+           // console.log(`\nProcesando item ${index + 1} de ${filteredData.length}`);
+            
+            item.data.forEach((record, recordIndex) => {
+               // console.log(`\nProcesando registro ${recordIndex}:`, JSON.stringify(record, null, 2));
+    
                 // Ignorar registros completamente inválidos
                 if (record['Time Of Record'] === "automataMensajes.wsdl.dataCell") {
+                   // console.log(`Registro ${recordIndex} inválido - Time Of Record inválido`);
                     return;
                 }
-
-                // Solo procesar registros con al menos algunos datos válidos
-                const tieneValoresValidos = Object.values(record).some(value => 
-                    value !== "automataMensajes.wsdl.dataCell"
-                );
-
-                if (!tieneValoresValidos) {
-                    return;
-                }
-
-                // Procesar los datos válidos
+    
+                // Procesar cada campo del registro
                 Object.entries(record).forEach(([key, valor]) => {
+                    // Ignorar campos de tiempo y registro
                     if (key === 'Time Of Record' || key === 'Record') return;
+                    
+                    // Ignorar valores inválidos
                     if (valor === "automataMensajes.wsdl.dataCell") return;
-
-                    const nombreEstandarizado = nombreVariables[key] || key;
-                    datosValidos.push([
-                        moment().format('YYYY-MM-DD HH:mm:ss'),
-                        'E9',
-                        nombreEstandarizado,
-                        0
-                    ]);
+    
+                    // Obtener el nombre estandarizado del campo usando nombreVariables
+                    const nombreEstandarizado = nombreVariables[key];
+                    
+                    // Si no hay mapeo en nombreVariables, ignorar el campo
+                    if (!nombreEstandarizado) {
+                        console.log(`Campo ${key} no tiene mapeo en nombreVariables`);
+                        return;
+                    }
+    
+                    // Convertir el valor a número
+                    const valorNumerico = parseFloat(valor);
+                    
+                    /* console.log(`Procesando campo: ${key}`);
+                    console.log('Valor original:', valor);
+                    console.log('Valor numérico:', valorNumerico);
+                    console.log('Nombre estandarizado:', nombreEstandarizado);
+     */
+                    // Solo agregar si el valor es un número válido
+                    if (!isNaN(valorNumerico)) {
+                        datosValidos.push([
+                            moment(record['Time Of Record'], 'DD-MM-YYYY HH:mm:ss').format('YYYY-MM-DD HH:mm:ss'),
+                            'E9',
+                            nombreEstandarizado,
+                            valorNumerico
+                        ]);
+                    }
                 });
             });
         });
-
+    
+        /* console.log('\n=== DATOS TRANSFORMADOS FINALES ===');
+        console.log('Cantidad de registros:', datosValidos.length);
+        console.log('Datos transformados:', JSON.stringify(datosValidos, null, 2)); */
         return datosValidos;
     }
 

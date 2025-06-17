@@ -2,20 +2,39 @@ const express = require('express');
 const router = express.Router();
 const ctl = require('../controllers/measurementController');
 const reportController = require('../controllers/reportController');
+const forecastController = require('../controllers/forecastController');
 
-// Endpoint para PM10
-router.get('/datos-PM10', ctl.getPM10Data);
-// Endpoint para viento
-router.get('/datos-viento', ctl.getWindData);
-// Endpoint para SO2
-router.get('/datos-SO2', ctl.getSO2Data);
-// Endpoint para múltiples variables
-router.get('/datos-variables', ctl.getVariablesData);
+const {
+  graphDataLimiter,
+  multipleVariablesLimiter,
+  reportLimiter,
+  emailTestLimiter,
+  forecastLimiter
+} = require('../middleware/rateLimiters');
 
-// Endpoint para generación de reporte
-router.get('/reportes/logs', reportController.generateReport);
+// Endpoint para PM10 con rate limit específico
+router.get('/datos-PM10', graphDataLimiter, ctl.getPM10Data);
 
-// Endpoint para prueba de envío de correo
-router.get('/reportes/test-email', reportController.testEmailConfig);
+// Endpoint para viento con rate limit específico
+router.get('/datos-viento', graphDataLimiter, ctl.getWindData);
+
+// Endpoint para SO2 con rate limit específico
+router.get('/datos-SO2', graphDataLimiter, ctl.getSO2Data);
+
+// Endpoint para múltiples variables con rate limit específico
+router.get('/datos-variables', multipleVariablesLimiter, ctl.getVariablesData);
+
+// Endpoint para generación de reporte con rate limit específico
+router.get('/reportes/logs', reportLimiter, reportController.generateReport);
+
+// Endpoint para prueba de envío de correo con rate limit específico
+router.get('/reportes/test-email', emailTestLimiter, reportController.testEmailConfig);
+
+// Endpoint para datos de pronóstico con rate limit específico
+router.get('/datos-pronostico-SO2', forecastLimiter, forecastController.getSO2Forecast);
+
+// Endpoint para control del programador de pronóstico
+router.get('/forecast/status', forecastController.getForecastStatus);
+router.post('/forecast/force-update', forecastController.forceForecastUpdate);
 
 module.exports = router;
