@@ -51,13 +51,13 @@ app.use(limiter);
 // Debug: mostrar FRONTEND_URL para verificar configuración
 console.log('>>> FRONTEND_URL =', process.env.FRONTEND_URL);
 
-// Configurar CORS para desarrollo
-app.use(cors({
-  origin: true, // Más permisivo en desarrollo
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// // Configurar CORS para desarrollo
+// app.use(cors({
+//   origin: true, // Más permisivo en desarrollo
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
 
 // Middleware de seguridad (mantenido pero con headers más permisivos para desarrollo)
 app.use((req, res, next) => {

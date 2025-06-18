@@ -152,7 +152,7 @@ async function getWindData() {
 
 // server/repositories/measurementRepository.js
 
-async function getMultipleVariablesData({ variables = ['HR', 'PM10', 'VV', 'Temperatura', 'SO2'], from, to }) {
+async function getMultipleVariablesData({ variables = ['HR', 'Temperatura', 'PM2_5'], from, to }) {
     if (!Array.isArray(variables) || variables.length === 0) {
         return [];
     }

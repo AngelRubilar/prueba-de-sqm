@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { pm10Stations } from '../config/stations';
-import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData } from '../services/api';
+import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -17,6 +17,7 @@ function EstacionesDashboard() {
   const [pm10Data, setPm10Data] = useState([]);
   const [so2Data, setSo2Data] = useState([]);
   const [windData, setWindData] = useState([]);
+  const [variablesData, setVariablesData] = useState([]);
   const [forecastData, setForecastData] = useState({
     'Huara': { forecast: [], real: [], range: [] },
     'Victoria': { forecast: [], real: [], range: [] },
@@ -29,10 +30,11 @@ function EstacionesDashboard() {
   const cargarDatosPrincipales = async () => {
     try {
       console.log('Cargando datos principales...');
-      const [pm10, so2, viento] = await Promise.all([
+      const [pm10, so2, viento, variables] = await Promise.all([
         fetchPM10Data(),
         fetchSO2Data(),
-        fetchVientoData()
+        fetchVientoData(),
+        fetchVariablesData()
       ]);
       console.log('Datos PM10 cargados:', pm10);
       console.log('Datos SO2 cargados:', so2);
@@ -40,6 +42,7 @@ function EstacionesDashboard() {
       setPm10Data(pm10);
       setSo2Data(so2);
       setWindData(viento);
+      setVariablesData(variables);
     } catch (error) {
       console.error('Error al cargar datos principales:', error);
     }
@@ -98,6 +101,21 @@ function EstacionesDashboard() {
     return datos[datos.length - 1].valor;
   };
 
+  // Función para obtener el último valor de una variable específica
+  const getUltimaVariable = (station, variable) => {
+    const datos = variablesData.filter(d => d.station_name === station && d.variable_name === variable);
+    if (!datos.length) return null;
+
+    // Ordenar por timestamp y obtener el más reciente
+    const datosOrdenados = datos.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return Number(datosOrdenados[0].valor);
+  };
+
+  // Funciones específicas para cada variable
+  const getUltimaHR = (station) => getUltimaVariable(station, 'HR');
+  const getUltimaTemperatura = (station) => getUltimaVariable(station, 'Temperatura');
+  const getUltimaPM25 = (station) => getUltimaVariable(station, 'PM2_5');
+
   const getUltimoViento = (station) => {
     const datos = windData.filter(d => d.station_name === station);
     if (!datos.length) return { velocidad: 0, direccion: 0, timestamp: null };
@@ -119,6 +137,19 @@ function EstacionesDashboard() {
       });
     
     console.log(`Datos PM10 para estación ${station}:`, data);
+    return data;
+  };
+
+  const getVariablesForStation = (station, variable) => {
+    const data = variablesData
+      .filter(d => d.station_name === station && d.variable_name === variable)
+      .map(d => [new Date(d.timestamp).getTime(), Number(d.valor)])
+      .filter(point => {
+        const [timestamp, value] = point;
+        return !isNaN(timestamp) && !isNaN(value) && value !== null && value !== 0;
+      });
+    
+    console.log(`Datos ${variable} para estación ${station}:`, data);
     return data;
   };
 
@@ -380,6 +411,11 @@ function EstacionesDashboard() {
           const so2 = getUltimoSO2(cfg.station);
           const showForecast = shouldShowForecast(cfg.station);
 
+          // Obtener valores de las variables adicionales
+          const hr = getUltimaHR(cfg.station);
+          const temperatura = getUltimaTemperatura(cfg.station);
+          const pm25 = getUltimaPM25(cfg.station);
+
           // Mapeo correcto de clave de estación
           const stationKey = stationKeyMap[cfg.station] || cfg.title;
           const stationForecastData = getForecastDataForStation(stationKey);
@@ -539,6 +575,66 @@ function EstacionesDashboard() {
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
                       {so2 ?? 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Indicador Humedad Relativa */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #3498db, #2980b9)',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
+                    minWidth: 200
+                  }}>
+                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                      💧 HR (%)
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>
+                      {hr ? hr.toFixed(1) : 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Indicador Temperatura */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #e67e22, #d35400)',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
+                    minWidth: 200
+                  }}>
+                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                      🌡️ Temp (°C)
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>
+                      {temperatura ? temperatura.toFixed(1) : 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Indicador PM2.5 */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
+                    minWidth: 200
+                  }}>
+                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                      🌫️ PM2.5 (μg/m³)
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>
+                      {pm25 ? pm25.toFixed(1) : 'N/A'}
                     </div>
                   </div>
                 </div>

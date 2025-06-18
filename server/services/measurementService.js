@@ -26,7 +26,7 @@ async function fetchSO2({ from, to }) {
  * Obtiene datos de múltiples variables en un rango opcional.
  * variables: array con nombres de variable.
  */
-async function fetchVariables({ variables = ['HR', 'PM10', 'VV', 'Temperatura', 'SO2'], from, to }) {
+async function fetchVariables({ variables = ['HR', 'Temperatura', 'PM2_5'], from, to }) {
   return repo.getMultipleVariablesData({ variables, from, to });
 }
 

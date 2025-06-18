@@ -35,7 +35,7 @@ async function getVariablesData(req, res, next) {
     const { from, to } = req.query;
     // Llamar al servicio con las variables por defecto
     const data = await service.fetchVariables({ 
-      variables: ['HR', 'PM10', 'VV', 'Temperatura', 'SO2'],
+      variables: ['HR', 'Temperatura', 'PM2_5'],
       from, 
       to 
     });
