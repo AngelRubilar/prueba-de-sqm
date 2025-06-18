@@ -294,7 +294,7 @@ function EstacionesDashboard() {
             fontFamily: 'Roboto, sans-serif',
             textShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            Dashboard de la puta madre
+            Dashboard SQM
           </h1>
           <p style={{
             color: '#7f8c8d',
