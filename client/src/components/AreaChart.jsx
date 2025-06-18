@@ -9,23 +9,35 @@ const defaultZones = [
   { value: 10000, color: '#8a3d92' },
 ];
 
-// Rellena los huecos de tiempo con nulls para que Highcharts muestre huecos
-function fillMissingTimestamps(data, intervalMs) {
+// Función mejorada para detectar y llenar huecos temporales
+function fillMissingTimestamps(data, expectedIntervalMs = 5 * 60 * 1000) { // 5 minutos por defecto
   if (!data.length) return [];
+  
   // Ordenar por timestamp
   const sorted = [...data].sort((a, b) => a[0] - b[0]);
   const filled = [];
-  let [current, end] = [sorted[0][0], sorted[sorted.length - 1][0]];
-  let i = 0;
-  while (current <= end) {
-    if (i < sorted.length && sorted[i][0] === current) {
-      filled.push([current, sorted[i][1]]);
-      i++;
-    } else {
-      filled.push([current, null]);
+  
+  for (let i = 0; i < sorted.length; i++) {
+    filled.push(sorted[i]);
+    
+    // Si no es el último punto, verificar el gap al siguiente
+    if (i < sorted.length - 1) {
+      const currentTime = sorted[i][0];
+      const nextTime = sorted[i + 1][0];
+      const timeDiff = nextTime - currentTime;
+      
+      // Si el gap es mayor al intervalo esperado + tolerancia (50%)
+      if (timeDiff > expectedIntervalMs * 1.5) {
+        // Insertar un punto null después del punto actual
+        filled.push([currentTime + expectedIntervalMs, null]);
+        // Y otro antes del siguiente punto si es necesario
+        if (timeDiff > expectedIntervalMs * 2.5) {
+          filled.push([nextTime - expectedIntervalMs, null]);
+        }
+      }
     }
-    current += intervalMs;
   }
+  
   return filled;
 }
 
@@ -35,32 +47,39 @@ const AreaChart = ({
   yAxisTitle = 'PM10 (µg/m³)',
   zones = defaultZones,
   width,
-  height
+  height,
+  expectedInterval = 5 * 60 * 1000 // 5 minutos en milisegundos
 }) => {
   console.log('AreaChart recibió props:', { data, title, yAxisTitle, width, height });
   
   // Verificar si hay datos
   if (!data || data.length === 0) {
     console.log('AreaChart: No hay datos para mostrar');
-    return <div style={{ height: height || 300, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ccc' }}>
-      No hay datos disponibles
-    </div>;
+    return (
+      <div style={{ 
+        height: height || 300, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        border: '1px solid #ccc' 
+      }}>
+        No hay datos disponibles
+      </div>
+    );
   }
 
-  // Solo toma puntos válidos y con timestamp numérico
+  // Limpiar y procesar datos
   const cleanData = data
     .filter(point => point && point.length === 2 && !isNaN(point[0]) && point[1] !== null && !isNaN(point[1]))
     .map(([timestamp, value]) => [Number(timestamp), Number(value)])
-    .sort((a, b) => a[0] - b[0]); // Ordenar por timestamp
+    .sort((a, b) => a[0] - b[0]);
 
   console.log('Datos limpios después del filtro:', cleanData.length, 'puntos');
-  console.log('Primeros 5 puntos:', cleanData.slice(0, 5));
-  console.log('Últimos 5 puntos:', cleanData.slice(-5));
 
-  // Simplificar: no rellenar huecos por ahora
-  const filledData = cleanData;
+  // Llenar huecos con valores null
+  const filledData = fillMissingTimestamps(cleanData, expectedInterval);
   
-  console.log('Datos finales para Highcharts:', filledData.length, 'puntos');
+  console.log('Datos con huecos llenados:', filledData.length, 'puntos');
 
   const options = {
     chart: { 
@@ -71,7 +90,10 @@ const AreaChart = ({
       height: height || 300
     },
     title: { text: title },
-    xAxis: { type: 'datetime', ordinal: false },
+    xAxis: { 
+      type: 'datetime', 
+      ordinal: false 
+    },
     yAxis: {
       title: { text: yAxisTitle },
       min: 0,
@@ -79,11 +101,26 @@ const AreaChart = ({
     legend: { enabled: false },
     plotOptions: {
       area: {
-        connectNulls: false,
-        marker: { radius: 2, enabled: false },
+        connectNulls: false, // CRÍTICO: No conectar valores null
+        gapSize: 2, // Tamaño máximo del gap antes de romper la línea
+        gapUnit: 'relative', // 'value' para milisegundos, 'relative' para puntos
+        marker: { 
+          radius: 2, 
+          enabled: false,
+          states: {
+            hover: {
+              enabled: true,
+              radius: 4
+            }
+          }
+        },
         lineWidth: 1,
         fillOpacity: 0.6,
-        states: { hover: { lineWidth: 1 } },
+        states: { 
+          hover: { 
+            lineWidth: 2 
+          } 
+        },
         threshold: null,
       },
     },
@@ -97,8 +134,8 @@ const AreaChart = ({
         type: 'area',
         name: yAxisTitle,
         data: filledData,
-        turboThreshold: 0,
-        connectNulls: false,
+        turboThreshold: 0, // Permitir cualquier cantidad de puntos
+        connectNulls: false, // Redundante pero explícito
         tooltip: { valueSuffix: ' µg/m³' },
         zones,
       },
