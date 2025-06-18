@@ -259,46 +259,111 @@ function EstacionesDashboard() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
       position: 'relative',
-      paddingBottom: 80 // Espacio para el botón fijo
+      width: '100vw',
+      margin: 0,
+      padding: 0
     }}>
-      {/* Header del Dashboard */}
+      {/* Header del Dashboard con botón integrado */}
       <div style={{
-        textAlign: 'center',
-        padding: '30px 20px 20px',
-        background: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(0,0,0,0.1)',
-        marginBottom: 20
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '20px 30px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(15px)',
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
+        marginBottom: 20,
+        boxShadow: '0 2px 20px rgba(0,0,0,0.05)'
       }}>
-        <h1 style={{
-          fontSize: 32,
-          fontWeight: 700,
-          color: '#2c3e50',
-          marginBottom: 8,
-          fontFamily: 'Roboto, sans-serif',
-          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          Dashboard de Estaciones de Monitoreo
-        </h1>
-        <p style={{
-          color: '#7f8c8d',
-          fontSize: 16,
-          margin: 0,
-          fontWeight: 400
-        }}>
-          Grupo {currentGroup + 1} de {groups.length} • Actualización automática cada 30 segundos
-        </p>
+        {/* Información del Dashboard */}
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 700,
+            color: '#2c3e50',
+            marginBottom: 6,
+            fontFamily: 'Roboto, sans-serif',
+            textShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            Dashboard de la puta madre
+          </h1>
+          <p style={{
+            color: '#7f8c8d',
+            fontSize: 14,
+            margin: 0,
+            fontWeight: 500
+          }}>
+            Grupo {currentGroup + 1} de {groups.length} • Actualización automática cada 30 segundos
+          </p>
+        </div>
+
+        {/* Botón "Siguiente" integrado en el header */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setCurrentGroup((prevGroup) => (prevGroup + 1) % 2)}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 12,
+              padding: '12px 20px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontFamily: 'Roboto, sans-serif',
+              minWidth: 120
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+            }}
+          >
+            <span>Siguiente</span>
+            <span style={{ fontSize: 16 }}>→</span>
+          </button>
+
+          {/* Indicador de grupo actual */}
+          <div style={{
+            position: 'absolute',
+            top: -8,
+            right: -8,
+            background: '#e74c3c',
+            color: 'white',
+            borderRadius: '50%',
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 11,
+            fontWeight: 700,
+            boxShadow: '0 2px 8px rgba(231, 76, 60, 0.3)'
+          }}>
+            {currentGroup + 1}
+          </div>
+        </div>
       </div>
 
-      {/* Contenedor principal de las estaciones */}
+      {/* Contenedor principal de las estaciones - Maximizado */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 20,
-          padding: '0 20px',
-          maxWidth: 1400,
-          margin: '0 auto'
+          gap: 16,
+          padding: '0 16px',
+          width: '100%',
+          maxWidth: 'none', // Removido límite de ancho
+          margin: 0,
+          boxSizing: 'border-box'
         }}
       >
         {groups[currentGroup].map(cfg => {
@@ -316,18 +381,19 @@ function EstacionesDashboard() {
               style={{
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: 16,
-                padding: 24,
+                padding: 16,
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                minWidth: 600,
-                minHeight: showForecast ? 580 : 480,
+                width: '100%',
+                minHeight: showForecast ? 600 : 500,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 transition: 'all 0.3s ease',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                boxSizing: 'border-box'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
@@ -363,28 +429,30 @@ function EstacionesDashboard() {
                 ESTACIÓN {cfg.title.toUpperCase()}
               </div>
 
-              {/* Contenedor principal con mejor espaciado */}
+              {/* Contenedor principal optimizado para máximo ancho */}
               <div style={{
                 display: 'flex',
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 width: '100%',
-                gap: 24
+                gap: 16,
+                alignItems: 'flex-start'
               }}>
-                {/* IZQUIERDA: Imagen, flecha, viento, SO2 */}
+                {/* IZQUIERDA: Imagen, flecha, viento, SO2 - Compacto */}
                 <div style={{
-                  width: 280,
+                  width: 260,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 16
+                  justifyContent: 'flex-start',
+                  gap: 12,
+                  flexShrink: 0
                 }}>
-                  {/* Contenedor de imagen mejorado */}
+                  {/* Contenedor de imagen compacto */}
                   <div style={{
                     position: 'relative',
-                    width: 240,
-                    height: 180,
+                    width: 220,
+                    height: 160,
                     borderRadius: 12,
                     overflow: 'hidden',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
@@ -465,13 +533,14 @@ function EstacionesDashboard() {
                     </div>
                   </div>
                 </div>
-                {/* DERECHA: Gráficos */}
+                {/* DERECHA: Gráficos - Maximizado */}
                 <div style={{
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 20,
-                  justifyContent: 'center'
+                  gap: 16,
+                  justifyContent: 'flex-start',
+                  minWidth: 0 // Permite que flex funcione correctamente
                 }}>
                   {/* Gráfico PM10 con contenedor mejorado */}
                   <div style={{
@@ -494,7 +563,7 @@ function EstacionesDashboard() {
                     </div>
                     <AreaChart
                       title=""
-                      width={520}
+                      width={null} // Permitir que use el ancho del contenedor
                       height={getPM10ChartHeight(cfg.station)}
                       data={getSeriePM10(cfg.station)}
                     />
@@ -535,64 +604,7 @@ function EstacionesDashboard() {
         })}
       </div>
 
-      {/* Botón "Siguiente" rediseñado con posición fija */}
-      <div style={{
-        position: 'fixed',
-        bottom: 30,
-        right: 30,
-        zIndex: 1000
-      }}>
-        <button
-          onClick={() => setCurrentGroup((prevGroup) => (prevGroup + 1) % 2)}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 50,
-            padding: '16px 24px',
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontFamily: 'Roboto, sans-serif',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px) scale(1.05)';
-            e.target.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.6)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0) scale(1)';
-            e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-          }}
-        >
-          <span>Siguiente</span>
-          <span style={{ fontSize: 18 }}>→</span>
-        </button>
 
-        {/* Indicador de grupo actual */}
-        <div style={{
-          position: 'absolute',
-          top: -40,
-          right: 0,
-          background: 'rgba(255,255,255,0.95)',
-          padding: '6px 12px',
-          borderRadius: 20,
-          fontSize: 12,
-          fontWeight: 500,
-          color: '#2c3e50',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(5px)',
-          border: '1px solid rgba(255,255,255,0.3)'
-        }}>
-          {currentGroup + 1}/{groups.length}
-        </div>
-      </div>
     </div>
   );
 }
