@@ -37,19 +37,39 @@ const AreaChart = ({
   width,
   height
 }) => {
-  // Ajusta este valor según la frecuencia real de tus datos (ejemplo: 1 min = 60000 ms)
-  const INTERVAL_MS = 60 * 1000;
+  console.log('AreaChart recibió props:', { data, title, yAxisTitle, width, height });
+  
+  // Verificar si hay datos
+  if (!data || data.length === 0) {
+    console.log('AreaChart: No hay datos para mostrar');
+    return <div style={{ height: height || 300, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ccc' }}>
+      No hay datos disponibles
+    </div>;
+  }
 
   // Solo toma puntos válidos y con timestamp numérico
   const cleanData = data
-    .filter(point => point && point.length === 2 && !isNaN(point[0]))
-    .map(([timestamp, value]) => [Number(timestamp), value === 0 ? null : value]);
+    .filter(point => point && point.length === 2 && !isNaN(point[0]) && point[1] !== null && !isNaN(point[1]))
+    .map(([timestamp, value]) => [Number(timestamp), Number(value)])
+    .sort((a, b) => a[0] - b[0]); // Ordenar por timestamp
 
-  // Rellenar los huecos
-  const filledData = fillMissingTimestamps(cleanData, INTERVAL_MS);
+  console.log('Datos limpios después del filtro:', cleanData.length, 'puntos');
+  console.log('Primeros 5 puntos:', cleanData.slice(0, 5));
+  console.log('Últimos 5 puntos:', cleanData.slice(-5));
+
+  // Simplificar: no rellenar huecos por ahora
+  const filledData = cleanData;
+  
+  console.log('Datos finales para Highcharts:', filledData.length, 'puntos');
 
   const options = {
-    chart: { type: 'area', zoomType: 'x', animation: false, width: width, height: height },
+    chart: { 
+      type: 'area', 
+      zoomType: 'x', 
+      animation: false, 
+      width: width, 
+      height: height || 300
+    },
     title: { text: title },
     xAxis: { type: 'datetime', ordinal: false },
     yAxis: {
@@ -62,7 +82,7 @@ const AreaChart = ({
         connectNulls: false,
         marker: { radius: 2, enabled: false },
         lineWidth: 1,
-        fillOpacity: 1,
+        fillOpacity: 0.6,
         states: { hover: { lineWidth: 1 } },
         threshold: null,
       },
@@ -84,6 +104,8 @@ const AreaChart = ({
       },
     ],
   };
+
+  console.log('Opciones de Highcharts:', options);
 
   return <ChartWrapper options={options} />;
 };

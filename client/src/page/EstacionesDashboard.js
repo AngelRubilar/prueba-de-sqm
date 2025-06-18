@@ -28,11 +28,15 @@ function EstacionesDashboard() {
   // Función para cargar datos de PM10, SO2 y Viento (cada 5 minutos)
   const cargarDatosPrincipales = async () => {
     try {
+      console.log('Cargando datos principales...');
       const [pm10, so2, viento] = await Promise.all([
         fetchPM10Data(),
         fetchSO2Data(),
         fetchVientoData()
       ]);
+      console.log('Datos PM10 cargados:', pm10);
+      console.log('Datos SO2 cargados:', so2);
+      console.log('Datos Viento cargados:', viento);
       setPm10Data(pm10);
       setSo2Data(so2);
       setWindData(viento);
@@ -106,13 +110,16 @@ function EstacionesDashboard() {
   };
 
   const getSeriePM10 = (station) => {
-    return pm10Data
+    const data = pm10Data
       .filter(d => d.station_name === station)
       .map(d => [new Date(d.timestamp).getTime(), Number(d.valor) === 0 ? null : Number(d.valor)])
       .filter(point => {
         const [timestamp, value] = point;
         return !isNaN(timestamp) && !isNaN(value) && value !== null && value !== 0;
       });
+    
+    console.log(`Datos PM10 para estación ${station}:`, data);
+    return data;
   };
 
   // Función para determinar si una estación debe mostrar el pronóstico
@@ -129,6 +136,8 @@ function EstacionesDashboard() {
   // Función para obtener datos de pronóstico por estación
   const getForecastDataForStation = (stationKey) => {
     const stationData = forecastData[stationKey];
+    console.log(`Datos de pronóstico para ${stationKey}:`, stationData);
+    
     if (!stationData) {
       return {
         forecast: [],
