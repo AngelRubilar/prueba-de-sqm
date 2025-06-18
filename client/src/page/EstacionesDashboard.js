@@ -575,6 +575,7 @@ function EstacionesDashboard() {
                       width={null} // Permitir que use el ancho del contenedor
                       height={getPM10ChartHeight(cfg.station)}
                       data={getSeriePM10(cfg.station)}
+                      expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
                     />
                   </div>
 
