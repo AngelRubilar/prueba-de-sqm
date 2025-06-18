@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { so2Stations } from '../config/stations'; // Configuración de estaciones de SO₂
 import { fetchSO2Data } from '../services/api'; // Función para obtener datos de SO₂
 import AreaChart from '../components/AreaChart'; // Reutiliza el AreaChart
+import SkeletonLoader from '../components/SkeletonLoader'; // Importar SkeletonLoader
 
 function SO2View() {
   const [so2Data, setSo2Data] = useState([]);
@@ -50,7 +51,64 @@ function SO2View() {
     }).filter((point) => point !== null); // Filtrar puntos inválidos
   };
 
-  if (loading) return <p>Cargando datos de SO₂…</p>;
+  // Pantalla de carga mejorada con Skeleton
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        padding: '20px 0'
+      }}>
+        {/* Header con indicador de carga */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: 30,
+          padding: '0 20px'
+        }}>
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 600,
+            color: '#2c3e50',
+            marginBottom: 10,
+            fontFamily: 'Roboto, sans-serif'
+          }}>
+            Dashboard SO₂
+          </h1>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            color: '#7f8c8d',
+            fontSize: 16
+          }}>
+            <div style={{
+              width: 20,
+              height: 20,
+              border: '2px solid #27ae60',
+              borderTop: '2px solid transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+            Cargando datos de SO₂...
+          </div>
+        </div>
+
+        {/* Inyectar animación de spin */}
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+
+        <SkeletonLoader />
+      </div>
+    );
+  }
+
   if (error) return <p>Error: {error}</p>;
 
   return (
