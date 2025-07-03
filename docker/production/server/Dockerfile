@@ -31,11 +31,26 @@ COPY server/ ./
 FROM node:18-slim 
 WORKDIR /app
 
-# Instalamos vim y otras herramientas útiles
+# Establecer variables de entorno para Python
+ENV PYTHONUNBUFFERED=1
+
+# Instalar Python y dependencias del sistema (incluyendo vim)
 RUN apt-get update && \
-    apt-get install -y vim && \
+    apt-get install -y \
+    python3-full \
+    python3-pip \
+    python3-venv \
+    vim && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Crear y activar un entorno virtual de Python
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Crear directorio para los datos de Python
+RUN mkdir -p /app/server/python/databases && \
+    chmod 777 /app/server/python/databases
 
 # Copia los artefactos compilados del cliente
 COPY --from=client-builder /app/client/build ./client/build
@@ -52,6 +67,8 @@ COPY package.json server/package.json ./
 RUN npm install
 WORKDIR /app/server
 
+# Instalar dependencias de Python en el entorno virtual
+RUN pip install --no-cache-dir -r /app/server/python/requirements.txt
 
 ENV NODE_ENV=production
 EXPOSE 3000

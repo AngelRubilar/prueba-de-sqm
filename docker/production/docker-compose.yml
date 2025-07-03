@@ -121,7 +121,7 @@ volumes:
     external: true
   python_data:  # Nuevo volumen para los datos de Python
     name: api_python_data
-    external: true
+    #external: true
 
 networks:
   api_app-network:
