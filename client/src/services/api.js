@@ -63,26 +63,26 @@ export function fetchVariablesData() {
 
 export const fetchForecastData = async () => {
   try {
-    console.log('=== INICIANDO PETICIÓN DE PRONÓSTICO ===');
+    //console.log('=== INICIANDO PETICIÓN DE PRONÓSTICO ===');
     const response = await fetch('/api/datos-pronostico-SO2');
-    console.log('Respuesta del servidor:', response.status, response.statusText);
+    //console.log('Respuesta del servidor:', response.status, response.statusText);
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Error detallado:', errorData);
+      //console.error('Error detallado:', errorData);
       throw new Error(`Error al obtener datos del pronóstico: ${JSON.stringify(errorData)}`);
     }
     
     const dataByStation = await response.json();
-    console.log('Datos recibidos del servidor por estación:', dataByStation);
-    console.log('Estaciones disponibles:', Object.keys(dataByStation));
+    //console.log('Datos recibidos del servidor por estación:', dataByStation);
+    //console.log('Estaciones disponibles:', Object.keys(dataByStation));
     
     // Transformar los datos al formato que espera Highcharts, separados por estación
     const transformedData = {};
     
     Object.keys(dataByStation).forEach(station => {
       const stationData = dataByStation[station];
-      console.log(`Procesando estación ${station}:`, stationData.length, 'registros');
+      //console.log(`Procesando estación ${station}:`, stationData.length, 'registros');
       
       if (stationData && stationData.length > 0) {
         transformedData[station] = {
@@ -90,13 +90,13 @@ export const fetchForecastData = async () => {
           real: stationData.map(d => [new Date(d.ds).getTime(), d.y]),
           range: stationData.map(d => [new Date(d.ds).getTime(), d.yhat_lower, d.yhat_upper])
         };
-        console.log(`${station} - Datos transformados:`, {
+        /* console.log(`${station} - Datos transformados:`, {
           forecast: transformedData[station].forecast.length,
           real: transformedData[station].real.length,
           range: transformedData[station].range.length
-        });
+        }); */
       } else {
-        console.log(`No hay datos para la estación ${station}`);
+        //console.log(`No hay datos para la estación ${station}`);
         transformedData[station] = {
           forecast: [],
           real: [],
@@ -105,14 +105,14 @@ export const fetchForecastData = async () => {
       }
     });
     
-    console.log('=== DATOS TRANSFORMADOS FINALES ===');
-    Object.keys(transformedData).forEach(station => {
-      console.log(`${station}:`, {
+    //console.log('=== DATOS TRANSFORMADOS FINALES ===');
+   /*  Object.keys(transformedData).forEach(station => {
+       console.log(`${station}:`, {
         forecast: transformedData[station].forecast.length,
         real: transformedData[station].real.length,
         range: transformedData[station].range.length
-      });
-    });
+      }); 
+    }); */
     
     return transformedData;
   } catch (error) {

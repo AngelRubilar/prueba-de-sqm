@@ -87,11 +87,15 @@ class AytService {
 
             return datos[datos.length - 1];
         } catch (error) {
-            if (error.response?.status === 401) {
+            const statusCode = error.response?.status;
+            
+            // MANEJO ESPECÍFICO POR CÓDIGO DE ERROR
+            if (statusCode === 401) {
                 try {
                     const nuevoToken = await aytAuthService.getValidToken();
                     if (!nuevoToken) {
-                        throw new Error('No se pudo obtener un nuevo token');
+                        aytErrorHandler.handleAuthError(station, new Error('No se pudo obtener un nuevo token'));
+                        return null;
                     }
                     
                     config.headers['Authorization'] = `Bearer ${nuevoToken}`;
@@ -103,11 +107,19 @@ class AytService {
                     aytErrorHandler.handleError(station, null, retryError);
                     return null;
                 }
+            } else if (statusCode === 404) {
+                // MANEJO ESPECÍFICO PARA 404
+                aytErrorHandler.handleNotFoundError(station, error);
+                return null;
+            } else if (statusCode === 500) {
+                // MANEJO ESPECÍFICO PARA 500
+                aytErrorHandler.handleServerError(station, error);
+                return null;
+            } else {
+                // Otros errores
+                aytErrorHandler.handleError(station, null, error);
+                return null;
             }
-            
-            // Usar el errorHandler para manejar el error original
-            aytErrorHandler.handleError(station, null, error);
-            return null;
         }
     }
 

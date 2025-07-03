@@ -9,7 +9,7 @@ class SerpramService {
   constructor() {
     this.dispositivos = ["Mejillones", "Sierra Gorda", "SQM Baquedano", "Maria Elena"];
     this.config = {
-      baseURL: 'https://api2.serpram.cl:4321/air_ws/v1/api',
+      baseURL: 'https://api.serpram.cl/air_ws/v1/api',
       token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNS0wNC0yOCAxMTozNDoxNiIsInVzZXJfaWQiOjMxLCJkYXRhIjoxMzU3MDAwMDAwfQ.Qyl5Jbfrypav9zLE6wchfApXom6DUy8e0E-pyVkq93c'
     };
   }

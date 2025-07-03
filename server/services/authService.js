@@ -15,7 +15,7 @@ class AuthService {
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: 'https://api2.serpram.cl:4321/air_ws/v1/api/login',
+        url: 'https://api.serpram.cl/air_ws/v1/api/login',
         headers: { 'Content-Type': 'application/json' },
         data
       };

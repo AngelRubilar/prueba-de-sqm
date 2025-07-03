@@ -9,9 +9,9 @@ module.exports = {
   "eui-24e124454c244455": "E13", // proveedor geovalidata estacion Sur Viejo
   "eui-24e124454c248348": "E14", // proveedor geovalidata estacion Coya Sur
   "eui-24e124454c142724": "E15", // proveedor geovalidata estacion Covadonga
-  "E11": "E11",
-  "E12": "E12",
-  "E13": "E13",
-  "E14": "E14",
-  "E15": "E15"
+  "E11": "E11",//Muelle 1
+  "E12": "E12",//Nueva Victoria
+  "E13": "E13",//Sur Viejo
+  "E14": "E14",//Coya Sur
+  "E15": "E15"//Covadonga
 };

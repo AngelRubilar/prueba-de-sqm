@@ -118,10 +118,10 @@ async function checkParquetFile(filePath) {
 
 const getSO2Forecast = async (req, res) => {
   try {
-    console.log('=== INICIANDO OBTENCIÓN DE PRONÓSTICO ===');
+    //console.log('=== INICIANDO OBTENCIÓN DE PRONÓSTICO ===');
     
     const parquetPath = path.join(__dirname, '../python/databases/fcst_db.parquet');
-    console.log('Ruta del archivo parquet:', parquetPath);
+    //console.log('Ruta del archivo parquet:', parquetPath);
 
     // Verificar si necesitamos actualizar el pronóstico
     const needsUpdate = !(await checkParquetFile(parquetPath));
@@ -155,7 +155,7 @@ const getSO2Forecast = async (req, res) => {
       const dataDate = new Date(d.ds);
       return dataDate >= twoDaysAgo;
     });
-    console.log(`Datos filtrados (últimos 2 días): ${filteredData.length} registros`);
+    //console.log(`Datos filtrados (últimos 2 días): ${filteredData.length} registros`);
 
     // Procesar los datos para el frontend
     const processedData = filteredData.map(d => ({
@@ -167,7 +167,7 @@ const getSO2Forecast = async (req, res) => {
       station: d.station
     }));
 
-    console.log(`Datos procesados: ${processedData.length} registros`);
+    //console.log(`Datos procesados: ${processedData.length} registros`);
     
     // Agrupar datos por estación
     const dataByStation = {
@@ -176,24 +176,24 @@ const getSO2Forecast = async (req, res) => {
       'Colonia Pintados': processedData.filter(d => d.station === 'Colonia Pintados')
     };
     
-    console.log('=== DATOS AGRUPADOS POR ESTACIÓN ===');
-    Object.keys(dataByStation).forEach(station => {
+    //console.log('=== DATOS AGRUPADOS POR ESTACIÓN ===');
+  /*   Object.keys(dataByStation).forEach(station => {
       console.log(`${station}: ${dataByStation[station].length} registros`);
       if (dataByStation[station].length > 0) {
         console.log(`  Ejemplo de datos para ${station}:`, dataByStation[station][0]);
       }
     });
-    
+     */
     // Verificar que los datos no estén vacíos
     const totalRecords = Object.values(dataByStation).reduce((sum, stationData) => sum + stationData.length, 0);
-    console.log(`Total de registros a enviar: ${totalRecords}`);
+    //console.log(`Total de registros a enviar: ${totalRecords}`);
     
     if (totalRecords === 0) {
       console.log('ADVERTENCIA: No hay datos para enviar al frontend');
     }
     
     // Enviar respuesta con datos agrupados por estación
-    console.log('Enviando respuesta al frontend...');
+    //console.log('Enviando respuesta al frontend...');
     res.json(dataByStation);
 
   } catch (error) {
@@ -207,7 +207,7 @@ const getSO2Forecast = async (req, res) => {
 // Controlador para forzar la actualización del pronóstico
 const forceForecastUpdate = async (req, res) => {
   try {
-    console.log('Forzando actualización del pronóstico...');
+    //console.log('Forzando actualización del pronóstico...');
     await runPythonScript();
     
     res.json({ 
@@ -254,29 +254,29 @@ const getForecastStatus = async (req, res) => {
 // Controlador temporal para debug
 const debugForecastData = async (req, res) => {
   try {
-    console.log('=== DEBUG FORECAST DATA ===');
+    //console.log('=== DEBUG FORECAST DATA ===');
     
     const parquetPath = path.join(__dirname, '../python/databases/fcst_db.parquet');
-    console.log('Ruta del archivo parquet:', parquetPath);
+    //console.log('Ruta del archivo parquet:', parquetPath);
     
     // Verificar si el archivo existe
     try {
       const stats = await fs.stat(parquetPath);
-      console.log('Archivo existe, tamaño:', stats.size, 'bytes');
+      //console.log('Archivo existe, tamaño:', stats.size, 'bytes');
     } catch (error) {
-      console.log('Archivo NO existe:', error.message);
+      //console.log('Archivo NO existe:', error.message);
       return res.status(404).json({ error: 'Archivo no encontrado' });
     }
     
     // Intentar leer el archivo con Python
-    console.log('Intentando leer archivo parquet con Python...');
+    //console.log('Intentando leer archivo parquet con Python...');
     const rawData = await readParquetFileWithPython(parquetPath);
-    console.log('Datos leídos:', rawData.length, 'registros');
+    //console.log('Datos leídos:', rawData.length, 'registros');
     
     // Mostrar estructura de los primeros 3 registros
     if (rawData.length > 0) {
-      console.log('Estructura del primer registro:', Object.keys(rawData[0]));
-      console.log('Primeros 3 registros:', rawData.slice(0, 3));
+      //console.log('Estructura del primer registro:', Object.keys(rawData[0]));
+      //console.log('Primeros 3 registros:', rawData.slice(0, 3));
     }
     
     // Filtrar datos de los últimos 2 días
@@ -285,7 +285,7 @@ const debugForecastData = async (req, res) => {
       const dataDate = new Date(d.ds);
       return dataDate >= twoDaysAgo;
     });
-    console.log('Datos filtrados (últimos 2 días):', filteredData.length, 'registros');
+    //console.log('Datos filtrados (últimos 2 días):', filteredData.length, 'registros');
     
     // Procesar datos
     const processedData = filteredData.map(d => ({
@@ -297,8 +297,8 @@ const debugForecastData = async (req, res) => {
       station: d.station
     }));
     
-    console.log('Datos procesados:', processedData.length, 'registros');
-    console.log('=== FIN DEBUG ===');
+    //console.log('Datos procesados:', processedData.length, 'registros');
+    //console.log('=== FIN DEBUG ===');
     
     res.json({
       debug: true,
