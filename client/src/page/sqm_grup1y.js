@@ -1,27 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { pm10Stations } from '../config/stations';
 import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import SkeletonLoader from '../components/SkeletonLoader';
-import mapaHuara from '../assets/estacionsqm.png';
+import estacionsqmImg from '../assets/estacionsqm.png';
+
+// Mapeo de estaciones a nombres y tipos
+const stations = [
+  { code: 'E7', name: 'Victoria', showForecast: true },
+  { code: 'E10', name: 'Victoria (sercoamb)', showForecast: false },
+  { code: 'E8', name: 'Colonia Pintados', showForecast: true },
+  { code: 'E12', name: 'Nueva Victoria', showForecast: false },
+  { code: 'E13', name: 'Sur Viejo', showForecast: false },
+  { code: 'E6', name: 'Huara', showForecast: true },
+  { code: 'E9', name: 'Tamentica (sercoamb)', showForecast: false },
+];
 
 // Mapeo de códigos de estación a nombres usados en forecastData
 const stationKeyMap = {
-  E6: 'Huara',
   E7: 'Victoria',
-  E8: 'Colonia Pintados'
+  E8: 'Colonia Pintados',
+  E6: 'Huara'
 };
 
-function EstacionesDashboard() {
+function SqmGrup1y() {
   const [pm10Data, setPm10Data] = useState([]);
   const [so2Data, setSo2Data] = useState([]);
   const [windData, setWindData] = useState([]);
   const [variablesData, setVariablesData] = useState([]);
   const [forecastData, setForecastData] = useState({
-    'Huara': { forecast: [], real: [], range: [] },
     'Victoria': { forecast: [], real: [], range: [] },
-    'Colonia Pintados': { forecast: [], real: [], range: [] }
+    'Colonia Pintados': { forecast: [], real: [], range: [] },
+    'Huara': { forecast: [], real: [], range: [] }
   });
   const [loading, setLoading] = useState(true);
   const [currentGroup, setCurrentGroup] = useState(0);
@@ -29,7 +39,6 @@ function EstacionesDashboard() {
   // Función para cargar datos de PM10, SO2 y Viento (cada 5 minutos)
   const cargarDatosPrincipales = async () => {
     try {
-      //console.log('Cargando datos principales...');
       const [pm10, so2, viento, variables] = await Promise.all([
         fetchPM10Data(),
         fetchSO2Data(),
@@ -42,7 +51,7 @@ function EstacionesDashboard() {
       setWindData(viento);
       setVariablesData(variables);
     } catch (error) {
-     // console.error('Error al cargar datos principales:', error);
+      console.error('Error al cargar datos principales:', error);
     }
   };
 
@@ -86,12 +95,19 @@ function EstacionesDashboard() {
     return () => clearInterval(intervalPronostico);
   }, []);
 
+  // Carrusel automático cada 30 segundos
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentGroup((prevGroup) => (prevGroup + 1) % 2); // Cambia entre 0 y 1
-    }, 30000); // Cambia cada 30 segundos
+      setCurrentGroup((prev) => (prev + 1) % 2);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Dividir en grupos de 4 y 3 estaciones
+  const groups = [
+    stations.slice(0, 4),  // Primera vista: 4 estaciones
+    stations.slice(4)      // Segunda vista: 3 estaciones
+  ];
 
   const getUltimoSO2 = (station) => {
     const datos = so2Data.filter(d => d.station_name === station);
@@ -134,38 +150,12 @@ function EstacionesDashboard() {
         return !isNaN(timestamp) && !isNaN(value) && value !== null && value !== 0;
       });
     
-    //console.log(`Datos PM10 para estación ${station}:`, data);
     return data;
-  };
-
-  const getVariablesForStation = (station, variable) => {
-    const data = variablesData
-      .filter(d => d.station_name === station && d.variable_name === variable)
-      .map(d => [new Date(d.timestamp).getTime(), Number(d.valor)])
-      .filter(point => {
-        const [timestamp, value] = point;
-        return !isNaN(timestamp) && !isNaN(value) && value !== null && value !== 0;
-      });
-    
-    //console.log(`Datos ${variable} para estación ${station}:`, data);
-    return data;
-  };
-
-  // Función para determinar si una estación debe mostrar el pronóstico
-  const shouldShowForecast = (station) => {
-    const forecastStations = ['E6', 'E7', 'E8'];
-    return forecastStations.includes(station);
-  };
-
-  // Función para obtener la altura del gráfico PM10 según la estación
-  const getPM10ChartHeight = (station) => {
-    return shouldShowForecast(station) ? 150 : 300; // 300px para estaciones sin pronóstico
   };
 
   // Función para obtener datos de pronóstico por estación
   const getForecastDataForStation = (stationKey) => {
     const stationData = forecastData[stationKey];
-    //console.log(`Datos de pronóstico para ${stationKey}:`, stationData);
   
     if (!stationData) {
       return {
@@ -230,7 +220,6 @@ function EstacionesDashboard() {
     };
   };
 
-  // Pantalla de carga mejorada con Skeleton
   if (loading) {
     return (
       <div style={{
@@ -238,7 +227,6 @@ function EstacionesDashboard() {
         background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         padding: '20px 0'
       }}>
-        {/* Header con indicador de carga */}
         <div style={{
           textAlign: 'center',
           marginBottom: 30,
@@ -251,7 +239,7 @@ function EstacionesDashboard() {
             marginBottom: 10,
             fontFamily: 'Roboto, sans-serif'
           }}>
-            Dashboard de Estaciones
+            Dashboard SQM - Superintendencia Operaciones Medio Ambiente Nueva Victoria
           </h1>
           <div style={{
             display: 'flex',
@@ -272,8 +260,6 @@ function EstacionesDashboard() {
             Cargando datos de las estaciones...
           </div>
         </div>
-
-        {/* Inyectar animación de spin */}
         <style>
           {`
             @keyframes spin {
@@ -282,16 +268,9 @@ function EstacionesDashboard() {
             }
           `}
         </style>
-
         <SkeletonLoader />
       </div>
     );
-  }
-
-  // Dividir las estaciones en grupos de 4
-  const groups = [];
-  for (let i = 0; i < pm10Stations.length; i += 4) {
-    groups.push(pm10Stations.slice(i, i + 4));
   }
 
   return (
@@ -325,7 +304,7 @@ function EstacionesDashboard() {
             fontFamily: 'Roboto, sans-serif',
             textShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            Dashboard SQM
+            Dashboard SQM - Superintendencia Operaciones Medio Ambiente Nueva Victoria
           </h1>
           <p style={{
             color: '#7f8c8d',
@@ -336,11 +315,10 @@ function EstacionesDashboard() {
             Grupo {currentGroup + 1} de {groups.length} • Actualización automática cada 30 segundos
           </p>
         </div>
-
         {/* Botón "Siguiente" integrado en el header */}
         <div style={{ position: 'relative' }}>
           <button
-            onClick={() => setCurrentGroup((prevGroup) => (prevGroup + 1) % 2)}
+            onClick={() => setCurrentGroup((prev) => (prev + 1) % groups.length)}
             style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: '#fff',
@@ -358,11 +336,11 @@ function EstacionesDashboard() {
               fontFamily: 'Roboto, sans-serif',
               minWidth: 120
             }}
-            onMouseEnter={(e) => {
+            onMouseEnter={e => {
               e.target.style.transform = 'translateY(-2px)';
               e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={e => {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
             }}
@@ -370,7 +348,6 @@ function EstacionesDashboard() {
             <span>Siguiente</span>
             <span style={{ fontSize: 16 }}>→</span>
           </button>
-
           {/* Indicador de grupo actual */}
           <div style={{
             position: 'absolute',
@@ -401,37 +378,37 @@ function EstacionesDashboard() {
           gap: 16,
           padding: '0 16px',
           width: '100%',
-          maxWidth: 'none', // Removido límite de ancho
+          maxWidth: 'none',
           margin: 0,
           boxSizing: 'border-box'
         }}
       >
-        {groups[currentGroup].map(cfg => {
-          const viento = getUltimoViento(cfg.station);
-          const so2 = getUltimoSO2(cfg.station);
-          const showForecast = shouldShowForecast(cfg.station);
+        {groups[currentGroup].map(station => {
+          const viento = getUltimoViento(station.code);
+          const so2 = getUltimoSO2(station.code);
+          const showForecast = station.showForecast;
 
           // Obtener valores de las variables adicionales
-          const hr = getUltimaHR(cfg.station);
-          const temperatura = getUltimaTemperatura(cfg.station);
-          const pm25 = getUltimaPM25(cfg.station);
+          const hr = getUltimaHR(station.code);
+          const temperatura = getUltimaTemperatura(station.code);
+          const pm25 = getUltimaPM25(station.code);
 
-          // Mapeo correcto de clave de estación
-          const stationKey = stationKeyMap[cfg.station] || cfg.title;
+          // Mapeo correcto de clave de estación para pronóstico
+          const stationKey = stationKeyMap[station.code];
           const stationForecastData = getForecastDataForStation(stationKey);
 
           return (
             <div
-              key={cfg.station}
+              key={station.code}
               style={{
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: 16,
-                padding: 16,
+                padding: 12,
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                 width: '100%',
-                minHeight: showForecast ? 600 : 500,
+                minHeight: showForecast ? 450 : 375,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -463,29 +440,29 @@ function EstacionesDashboard() {
               {/* Título mejorado */}
               <div style={{
                 fontWeight: 700,
-                marginBottom: 20,
-                fontSize: 20,
+                marginBottom: 15,
+                fontSize: 15,
                 textAlign: 'center',
                 color: '#2c3e50',
                 fontFamily: 'Roboto, sans-serif',
                 letterSpacing: '0.5px',
                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }}>
-                {cfg.title.toUpperCase()}
+                {station.name.toUpperCase()}
               </div>
 
-              {/* Contenedor principal optimizado para máximo ancho */}
+              {/* Layout horizontal igual a EstacionesDashboard */}
               <div style={{
                 display: 'flex',
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 width: '100%',
-                gap: 16,
+                gap: 9,
                 alignItems: 'flex-start'
               }}>
-                {/* IZQUIERDA: Imagen, flecha, viento, SO2 - Compacto */}
+                {/* IZQUIERDA: Imagen, flecha, viento, SO2, HR, Temp, PM2.5 */}
                 <div style={{
-                  width: 260,
+                  width: 165,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -493,18 +470,18 @@ function EstacionesDashboard() {
                   gap: 12,
                   flexShrink: 0
                 }}>
-                  {/* Contenedor de imagen compacto */}
+                  {/* Imagen y flecha de viento */}
                   <div style={{
                     position: 'relative',
-                    width: 220,
-                    height: 160,
-                    borderRadius: 12,
+                    width: 165,
+                    height: 120,
+                    borderRadius: 9,
                     overflow: 'hidden',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
                     border: '2px solid rgba(255,255,255,0.8)'
                   }}>
                     <img
-                      src={mapaHuara}
+                      src={estacionsqmImg}
                       alt="Mapa de la estación"
                       style={{
                         width: '100%',
@@ -512,33 +489,29 @@ function EstacionesDashboard() {
                         objectFit: 'cover'
                       }}
                     />
-
-                    {/* Flecha de dirección del viento mejorada */}
                     <div
                       style={{
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
-                        width: 60,
-                        height: 60,
+                        width: 45,
+                        height: 45,
                         transform: `translate(-50%, -50%) rotate(${viento.direccion}deg)`,
                         color: '#e74c3c',
-                        fontSize: 40,
+                        fontSize: 30,
                         pointerEvents: 'none',
                         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                         transition: 'transform 0.5s ease'
                       }}
                     >⬇️</div>
-
-                    {/* Información de viento mejorada */}
                     <div style={{
                       position: 'absolute',
-                      top: 12,
-                      left: 12,
+                      top: 6,
+                      left: 6,
                       background: 'rgba(255,255,255,0.95)',
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 11,
+                      padding: '6px 9px',
+                      borderRadius: 6,
+                      fontSize: 8,
                       fontWeight: 500,
                       color: '#2c3e50',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -557,84 +530,77 @@ function EstacionesDashboard() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Indicador SO2 mejorado */}
+                  {/* Indicadores */}
                   <div style={{
                     background: 'linear-gradient(135deg, #2ecc71, #27ae60)',
                     color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
+                    padding: '9px 15px',
+                    borderRadius: 9,
                     textAlign: 'center',
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: 600,
                     boxShadow: '0 4px 16px rgba(46, 204, 113, 0.3)',
-                    minWidth: 200
+                    minWidth: 150
                   }}>
                     <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
                       SO₂ (μg/m³)
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {so2 ?? 'N/A'}
+                      {so2 !== null && so2 !== undefined ? so2 : 'N/A'}
                     </div>
                   </div>
-
-                  {/* Indicador Humedad Relativa */}
                   <div style={{
                     background: 'linear-gradient(135deg, #3498db, #2980b9)',
                     color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
+                    padding: '9px 15px',
+                    borderRadius: 9,
                     textAlign: 'center',
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: 600,
                     boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
-                    minWidth: 200
+                    minWidth: 150
                   }}>
                     <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
                       💧 HR (%)
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {hr ? hr.toFixed(1) : 'N/A'}
+                      {hr !== null && hr !== undefined ? hr.toFixed(1) : 'N/A'}
                     </div>
                   </div>
-
-                  {/* Indicador Temperatura */}
                   <div style={{
                     background: 'linear-gradient(135deg, #e67e22, #d35400)',
                     color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
+                    padding: '9px 15px',
+                    borderRadius: 9,
                     textAlign: 'center',
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: 600,
                     boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
-                    minWidth: 200
+                    minWidth: 150
                   }}>
                     <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
                       🌡️ Temp (°C)
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {temperatura ? temperatura.toFixed(1) : 'N/A'}
+                      {temperatura !== null && temperatura !== undefined ? temperatura.toFixed(1) : 'N/A'}
                     </div>
                   </div>
-
-                  {/* Indicador PM2.5 */}
                   <div style={{
                     background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
                     color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
+                    padding: '9px 15px',
+                    borderRadius: 9,
                     textAlign: 'center',
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: 600,
                     boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
-                    minWidth: 200
+                    minWidth: 150
                   }}>
                     <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
                       🌫️ PM2.5 (μg/m³)
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {pm25 ? pm25.toFixed(1) : 'N/A'}
+                      {pm25 !== null && pm25 !== undefined ? pm25.toFixed(1) : 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -643,9 +609,9 @@ function EstacionesDashboard() {
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 16,
+                  gap: 12,
                   justifyContent: 'flex-start',
-                  minWidth: 0 // Permite que flex funcione correctamente
+                  minWidth: 0
                 }}>
                   {/* Gráfico PM10 con contenedor mejorado */}
                   <div style={{
@@ -668,15 +634,14 @@ function EstacionesDashboard() {
                     </div>
                     <AreaChart
                       title=""
-                      width={null} // Permitir que use el ancho del contenedor
-                      height={getPM10ChartHeight(cfg.station)}
-                      data={getSeriePM10(cfg.station)}
-                      expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
+                      width={null}
+                      height={150}
+                      data={getSeriePM10(station.code)}
+                      expectedInterval={10 * 60 * 1000}
                       showNormaAmbiental={true}
                       normaAmbientalValue={130}
                     />
                   </div>
-
                   {/* Gráfico pronóstico con contenedor mejorado */}
                   {showForecast && (
                     <div style={{
@@ -702,7 +667,8 @@ function EstacionesDashboard() {
                         forecastData={stationForecastData.forecast}
                         realData={stationForecastData.real}
                         rangeData={stationForecastData.range}
-                        expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
+                        expectedInterval={10 * 60 * 1000}
+                        height={67}
                       />
                     </div>
                   )}
@@ -712,10 +678,8 @@ function EstacionesDashboard() {
           );
         })}
       </div>
-
-
     </div>
   );
 }
 
-export default EstacionesDashboard;
+export default SqmGrup1y; 

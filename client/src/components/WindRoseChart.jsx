@@ -13,12 +13,12 @@ exporting(Highcharts);
 offlineExporting(Highcharts); // Inicializa el módulo offline
 
 const WindRoseChart = ({ data, title, width, height }) => {
-  console.log('Datos recibidos por WindRoseChart:', data); // Verifica los datos recibidos
+  //console.log('Datos recibidos por WindRoseChart:', data); // Verifica los datos recibidos
 
   // Ajusta los datos al formato esperado por Highcharts
   const processedData = data.map(({ velocidad, direccion }) => [parseFloat(velocidad) || 0, parseFloat(direccion) || 0]);
 
-  console.log('Datos procesados para el gráfico:', processedData); // Verifica los datos procesados
+  //console.log('Datos procesados para el gráfico:', processedData); // Verifica los datos procesados
 
   const options = {
     chart: {

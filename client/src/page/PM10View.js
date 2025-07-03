@@ -299,6 +299,8 @@ function PM10View() {
                     height={null} // Permitir que se ajuste automáticamente
                     width={null} // Usar el ancho completo disponible
                     expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
+                    showNormaAmbiental={true}
+                    normaAmbientalValue={130}
                     zones={[
                       { value: 130, color: '#15b01a' },
                       { value: 180, color: '#fbfb00' },

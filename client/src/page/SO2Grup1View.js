@@ -1,36 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { so2Stations } from '../config/stations'; // Configuración de estaciones de SO₂
-import { fetchSO2Data } from '../services/api'; // Función para obtener datos de SO₂
-import AreaChart from '../components/AreaChart'; // Reutiliza el AreaChart
-import SkeletonLoader from '../components/SkeletonLoader'; // Importar SkeletonLoader
+import { fetchSO2Data } from '../services/api';
+import AreaChart from '../components/AreaChart';
+import RateLimitError from '../components/RateLimitError';
+import SkeletonLoader from '../components/SkeletonLoader';
 
-function SO2View() {
+// Estaciones del Grupo 1 que tienen datos de SO2
+const so2Grup1Stations = [
+  { title: 'Estación Victoria', station: 'E7' },
+  { title: 'Estación Colonia Pintados', station: 'E8' },
+  { title: 'Estación Huara', station: 'E6' },
+];
+
+function SO2Grup1View() {
   const [so2Data, setSo2Data] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryAfter, setRetryAfter] = useState(null);
 
-  const loadSO2Data = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const data = await fetchSO2Data();
       setSo2Data(data);
       setError(null);
+      setRetryAfter(null);
     } catch (err) {
-      setError(err.message);
+      if (err.isRateLimit) {
+        setError(err.message);
+        setRetryAfter(err.retryAfter);
+        // Programar reintento automático
+        setTimeout(loadData, err.retryAfter * 1000);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSO2Data();// Cargar datos al montar el componente
+    loadData();
 
     const intervalId = setInterval(() => {
       console.log('Actualizando datos automáticamente...');
-      loadSO2Data(); // Actualizar datos cada minuto
+      loadData();
     }, 60000); // 60 segundos
 
-    return () => clearInterval(intervalId); // Limpiar el intervalo al desmontar el componente
+    return () => clearInterval(intervalId);
   }, []);
 
   const getSeriesSO2 = (stationId) => {
@@ -72,7 +88,7 @@ function SO2View() {
             marginBottom: 10,
             fontFamily: 'Roboto, sans-serif'
           }}>
-            Dashboard SO₂
+            Dashboard SO₂ - Superintendencia Operaciones Medio Ambiente Nueva Victoria
           </h1>
           <div style={{
             display: 'flex',
@@ -109,7 +125,12 @@ function SO2View() {
     );
   }
 
-  if (error) return <p>Error: {error}</p>;
+  if (error) {
+    if (error.isRateLimit) {
+      return <RateLimitError message={error} retryAfter={retryAfter} />;
+    }
+    return <p>Error: {error}</p>;
+  }
 
   return (
     <div style={{
@@ -142,7 +163,7 @@ function SO2View() {
             fontFamily: 'Roboto, sans-serif',
             textShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            Dashboard SO₂
+            Dashboard SO₂ - Superintendencia Operaciones Medio Ambiente Nueva Victoria
           </h1>
           <p style={{
             color: '#7f8c8d',
@@ -157,7 +178,7 @@ function SO2View() {
         {/* Botón "Actualizar" integrado en el header */}
         <div style={{ position: 'relative' }}>
           <button
-            onClick={loadSO2Data}
+            onClick={loadData}
             style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: '#fff',
@@ -189,20 +210,20 @@ function SO2View() {
         </div>
       </div>
 
-      {/* Contenedor principal de las estaciones */}
+      {/* Contenedor principal de las estaciones - 2 columnas */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)', // 3 columnas fijas de igual tamaño
+          gridTemplateColumns: 'repeat(2, 1fr)', // 2 columnas fijas de igual tamaño
           gap: 20,
-          padding: '0 20px 20px 20px', // Agregué padding bottom
+          padding: '0 20px 20px 20px',
           width: '100%',
           height: 'calc(100vh - 120px)', // Altura calculada para aprovechar toda la vista
           margin: 0,
           boxSizing: 'border-box'
         }}
       >
-        {so2Stations.map((cfg) => {
+        {so2Grup1Stations.map((cfg) => {
           const seriesData = getSeriesSO2(cfg.station);
           console.log(`Datos pasados a AreaChart para ${cfg.title}:`, seriesData);
 
@@ -212,7 +233,7 @@ function SO2View() {
               style={{
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: 16,
-                padding: 20, // Reduje un poco el padding para aprovechar más espacio
+                padding: 20,
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
@@ -249,14 +270,14 @@ function SO2View() {
               {/* Título mejorado */}
               <div style={{
                 fontWeight: 700,
-                marginBottom: 16, // Reduje un poco para aprovechar más espacio
-                fontSize: 18, // Reduje ligeramente para que quepan mejor
+                marginBottom: 16,
+                fontSize: 20, // Tamaño para 2 columnas
                 textAlign: 'center',
                 color: '#2c3e50',
                 fontFamily: 'Roboto, sans-serif',
                 letterSpacing: '0.5px',
                 textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                flexShrink: 0 // No se encoge
+                flexShrink: 0
               }}>
                 {cfg.title.toUpperCase()}
               </div>
@@ -269,24 +290,24 @@ function SO2View() {
                 boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
                 border: '1px solid rgba(255,255,255,0.5)',
                 width: '100%',
-                flex: 1, // Toma todo el espacio disponible
+                flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                minHeight: 0 // Permite que se encoja si es necesario
+                minHeight: 0
               }}>
                 <div style={{
-                  fontSize: 16,
+                  fontSize: 18, // Tamaño para 2 columnas
                   fontWeight: 600,
                   color: '#2c3e50',
                   marginBottom: 12,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  flexShrink: 0 // No se encoge
+                  flexShrink: 0
                 }}>
                   📊 SO₂ (μg/m³)
                 </div>
-                <div style={{ flex: 1, minHeight: 0 }}> {/* Contenedor que se ajusta */}
+                <div style={{ flex: 1, minHeight: 0 }}>
                   <AreaChart
                     title=""
                     data={seriesData}
@@ -313,4 +334,4 @@ function SO2View() {
   );
 }
 
-export default SO2View;
+export default SO2Grup1View; 

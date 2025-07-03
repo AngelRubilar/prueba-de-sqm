@@ -48,13 +48,15 @@ const AreaChart = ({
   zones = defaultZones,
   width,
   height,
-  expectedInterval = 5 * 60 * 1000 // 5 minutos en milisegundos
+  expectedInterval = 5 * 60 * 1000, // 5 minutos en milisegundos
+  showNormaAmbiental = false,
+  normaAmbientalValue = 130
 }) => {
-  console.log('AreaChart recibió props:', { data, title, yAxisTitle, width, height });
+  //console.log('AreaChart recibió props:', { data, title, yAxisTitle, width, height });
   
   // Verificar si hay datos
   if (!data || data.length === 0) {
-    console.log('AreaChart: No hay datos para mostrar');
+    //console.log('AreaChart: No hay datos para mostrar');
     return (
       <div style={{ 
         height: height || 300, 
@@ -74,12 +76,22 @@ const AreaChart = ({
     .map(([timestamp, value]) => [Number(timestamp), Number(value)])
     .sort((a, b) => a[0] - b[0]);
 
-  console.log('Datos limpios después del filtro:', cleanData.length, 'puntos');
+  //console.log('Datos limpios después del filtro:', cleanData.length, 'puntos');
 
   // Llenar huecos con valores null
   const filledData = fillMissingTimestamps(cleanData, expectedInterval);
   
-  console.log('Datos con huecos llenados:', filledData.length, 'puntos');
+  //console.log('Datos con huecos llenados:', filledData.length, 'puntos');
+
+  // Determinar el texto de la norma ambiental según el tipo de contaminante
+  const getNormaAmbientalText = () => {
+    if (yAxisTitle.includes('SO₂')) {
+      return 'Norma Ambiental: 350 μg/m³';
+    } else if (yAxisTitle.includes('PM10')) {
+      return 'Norma Ambiental: 130 μg/m³';
+    }
+    return `Norma Ambiental: ${normaAmbientalValue} μg/m³`;
+  };
 
   const options = {
     chart: { 
@@ -97,6 +109,25 @@ const AreaChart = ({
     yAxis: {
       title: { text: yAxisTitle },
       min: 0,
+      plotLines: showNormaAmbiental ? [
+        {
+          value: normaAmbientalValue,
+          color: '#e74c3c',
+          width: 2,
+          dashStyle: 'dash',
+          label: {
+            text: getNormaAmbientalText(),
+            style: {
+              color: '#e74c3c',
+              fontWeight: 'bold',
+              fontSize: '11px'
+            },
+            rotation: 0,
+            y: -5
+          },
+          zIndex: 5
+        }
+      ] : []
     },
     legend: { enabled: false },
     plotOptions: {
@@ -142,7 +173,7 @@ const AreaChart = ({
     ],
   };
 
-  console.log('Opciones de Highcharts:', options);
+  //console.log('Opciones de Highcharts:', options);
 
   return <ChartWrapper options={options} />;
 };

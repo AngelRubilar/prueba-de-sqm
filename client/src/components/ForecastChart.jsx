@@ -13,20 +13,21 @@ HighchartsAccessibility(Highcharts);
 
 const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
   const chartRef = useRef(null);
+
+  // Obtener la hora actual
+  const now = Date.now();
+
   
-  console.log('ForecastChart recibió props:', { title, forecastData: forecastData?.length, realData: realData?.length, rangeData: rangeData?.length });
+   
+  // Filtrar realData hasta la hora actual y eliminar valores nulos
+  const realDataFiltered = (realData || [])
+    .filter(point => point[0] <= now && point[1] !== null && !isNaN(point[1]))
+    .sort((a, b) => a[0] - b[0]);
+
+  //console.log('realData filtrado:', realDataFiltered);
 
   useEffect(() => {
-    if (!chartRef.current) {
-      console.log('ForecastChart: chartRef.current es null');
-      return;
-    }
-    
-    console.log('Creando chart de Highcharts con datos:', { 
-      forecastData: forecastData?.length, 
-      realData: realData?.length, 
-      rangeData: rangeData?.length 
-    });
+    if (!chartRef.current) return;
 
     try {
       const chart = Highcharts.chart(chartRef.current, {
@@ -49,7 +50,7 @@ const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
         },
         yAxis: {
           title: {
-            text: 'SO2 (ug/m3)'
+            text: 'PM10 (ug/m3)'
           },
           min: 0
         },
@@ -102,20 +103,21 @@ const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
           },
           {
             name: 'Real',
-            data: realData || [],
+            // Usar directamente los datos reales filtrados sin alineación forzada
+            data: realDataFiltered,
             type: 'line',
             turboThreshold: 0,
-            zIndex: 1,
+            zIndex: 2, // Mayor zIndex para que esté por encima
             marker: {
               fillColor: 'black',
-              lineWidth: 2
+              lineWidth: 2,
+              radius: 3
             },
-            lineColor: '#000000'
+            lineColor: '#000000',
+            lineWidth: 3
           }
         ]
       });
-
-      console.log('Chart creado exitosamente:', chart);
 
       return () => {
         if (chart) {
