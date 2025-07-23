@@ -60,16 +60,26 @@ class AytService {
 
     async obtenerDatos(tag) {
         const station = this.getStationFromTag(tag);
-        const fechaDesde = moment().format('YYYY-MM-DD');
-        const fechaHasta = moment().add(1, 'days').format('YYYY-MM-DD');
+        
+        // La API AYT necesita consultar desde el día actual hasta el día siguiente para obtener datos
+        const fechaDesde = moment().tz('America/Santiago').format('YYYY-MM-DD');
+        const fechaHasta = moment().tz('America/Santiago').add(1, 'days').format('YYYY-MM-DD');
+        
+        console.log(`🔍 Consultando AYT - Estación: ${station}, Tag: ${tag}`);
+        console.log(`📅 Rango de fechas: ${fechaDesde} a ${fechaHasta} (día actual hasta día siguiente)`);
+        console.log(`🕐 Hora actual Chile: ${moment().tz('America/Santiago').format('YYYY-MM-DD HH:mm:ss')}`);
 
+        // Obtener token válido desde el inicio
+        let token = await aytAuthService.getValidToken();
+        console.log(`🔑 Token AYT obtenido: ${token ? 'Sí' : 'No'}`);
+        
         let config = {
             method: 'get',
             maxBodyLength: Infinity,
             url: `http://104.41.40.103:8080/api/Cems/GetBetweenValues?id_cems=01&tag=${tag}&fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`,
             headers: {
                 'Accept': 'application/json;charset=UTF-8',
-                'Authorization': `Bearer ${process.env.AYT_TOKEN}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             data: JSON.stringify({
@@ -81,6 +91,9 @@ class AytService {
         try {
             let response = await axios.request(config);
             const datos = response.data;
+            console.log(`✅ AYT API Response - ${tag}:`);
+            console.log(`   Status: ${response.status}`);
+            console.log(`   Data length: ${datos.length}`);
             
             // Usar el errorHandler para manejar la respuesta
             aytErrorHandler.handleError(station, response);
@@ -91,8 +104,10 @@ class AytService {
             
             // MANEJO ESPECÍFICO POR CÓDIGO DE ERROR
             if (statusCode === 401) {
+                console.log(`🔄 Error 401 para ${station}, intentando renovar token...`);
                 try {
-                    const nuevoToken = await aytAuthService.getValidToken();
+                    // Forzar renovación de token
+                    const nuevoToken = await aytAuthService.forceRenewToken();
                     if (!nuevoToken) {
                         aytErrorHandler.handleAuthError(station, new Error('No se pudo obtener un nuevo token'));
                         return null;
@@ -101,8 +116,10 @@ class AytService {
                     config.headers['Authorization'] = `Bearer ${nuevoToken}`;
                     const response = await axios.request(config);
                     const datos = response.data;
+                    console.log(`✅ Reintento exitoso para ${station}`);
                     return datos[datos.length - 1];
                 } catch (retryError) {
+                    console.error(`❌ Error en reintento para ${station}:`, retryError.message);
                     // Usar el errorHandler para manejar el error de reintento
                     aytErrorHandler.handleError(station, null, retryError);
                     return null;
