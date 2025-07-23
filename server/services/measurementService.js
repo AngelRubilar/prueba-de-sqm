@@ -30,9 +30,18 @@ async function fetchVariables({ variables = ['HR', 'Temperatura', 'PM2_5'], from
   return repo.getMultipleVariablesData({ variables, from, to });
 }
 
+/**
+ * Obtiene datos de viento (velocidad y dirección) específicos de la estación Hospital (E5)
+ * con implementación de caché Redis para los últimos 2 días
+ */
+async function fetchHospitalWindData() {
+  return repo.getHospitalWindData();
+}
+
 module.exports = {
   fetchPM10,
   fetchWindData,
   fetchSO2,
   fetchVariables,
+  fetchHospitalWindData,
 };

@@ -1,5 +1,13 @@
-import React from 'react';
-import ChartWrapper from './ChartWrapper';
+import React, { useEffect, useRef } from 'react';
+import Highcharts from 'highcharts/highstock';
+import HighchartsReact from 'highcharts-react-official';
+
+// Establecer idioma global para el selector de rango
+Highcharts.setOptions({
+  lang: {
+    rangeSelectorZoom: 'Rango'
+  }
+});
 
 const defaultZones = [
   { value: 130, color: '#15b01a' },
@@ -9,82 +17,55 @@ const defaultZones = [
   { value: 10000, color: '#8a3d92' },
 ];
 
-// Función mejorada para detectar y llenar huecos temporales
-function fillMissingTimestamps(data, expectedIntervalMs = 5 * 60 * 1000) { // 5 minutos por defecto
+function fillMissingTimestamps(data, expectedIntervalMs = 5 * 60 * 1000) {
   if (!data.length) return [];
-  
-  // Ordenar por timestamp
   const sorted = [...data].sort((a, b) => a[0] - b[0]);
   const filled = [];
-  
   for (let i = 0; i < sorted.length; i++) {
     filled.push(sorted[i]);
-    
-    // Si no es el último punto, verificar el gap al siguiente
     if (i < sorted.length - 1) {
       const currentTime = sorted[i][0];
       const nextTime = sorted[i + 1][0];
       const timeDiff = nextTime - currentTime;
-      
-      // Si el gap es mayor al intervalo esperado + tolerancia (50%)
       if (timeDiff > expectedIntervalMs * 1.5) {
-        // Insertar un punto null después del punto actual
         filled.push([currentTime + expectedIntervalMs, null]);
-        // Y otro antes del siguiente punto si es necesario
         if (timeDiff > expectedIntervalMs * 2.5) {
           filled.push([nextTime - expectedIntervalMs, null]);
         }
       }
     }
   }
-  
   return filled;
 }
 
-const AreaChart = ({
+const StockAreaChart = ({
   data,
-  title,
-  yAxisTitle = 'PM10 (µg/m³)',
+  title = '',
+  yAxisTitle = '',
   zones = defaultZones,
   width,
-  height,
-  expectedInterval = 5 * 60 * 1000, // 5 minutos en milisegundos
+  height = 350,
+  expectedInterval = 5 * 60 * 1000,
   showNormaAmbiental = false,
-  normaAmbientalValue = 130,
-  showNavigator = false
+  normaAmbientalValue = 130
 }) => {
-  //console.log('AreaChart recibió props:', { data, title, yAxisTitle, width, height });
-  
-  // Verificar si hay datos
+  const chartComponentRef = useRef(null);
+
   if (!data || data.length === 0) {
-    //console.log('AreaChart: No hay datos para mostrar');
     return (
-      <div style={{ 
-        height: height || 300, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        border: '1px solid #ccc' 
-      }}>
+      <div style={{ height: height || 300, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ccc' }}>
         No hay datos disponibles
       </div>
     );
   }
 
-  // Limpiar y procesar datos
   const cleanData = data
     .filter(point => point && point.length === 2 && !isNaN(point[0]) && point[1] !== null && !isNaN(point[1]))
     .map(([timestamp, value]) => [Number(timestamp), Number(value)])
     .sort((a, b) => a[0] - b[0]);
 
-  //console.log('Datos limpios después del filtro:', cleanData.length, 'puntos');
-
-  // Llenar huecos con valores null
   const filledData = fillMissingTimestamps(cleanData, expectedInterval);
-  
-  //console.log('Datos con huecos llenados:', filledData.length, 'puntos');
 
-  // Determinar el texto de la norma ambiental según el tipo de contaminante
   const getNormaAmbientalText = () => {
     if (yAxisTitle.includes('SO₂')) {
       return 'Norma Ambiental: 350 μg/m³';
@@ -95,22 +76,22 @@ const AreaChart = ({
   };
 
   const options = {
-    chart: { 
-      type: 'area', 
-      zoomType: 'x', 
-      animation: false, 
-      width: width, 
-      height: height || 300
+    chart: {
+      type: 'area',
+      width: width,
+      height: height,
+      zoomType: 'x',
+      animation: false
     },
     title: { text: title },
-    xAxis: { 
-      type: 'datetime', 
-      ordinal: false 
+    xAxis: {
+      type: 'datetime',
+      ordinal: false,
+      gapGridLineWidth: 0
     },
     yAxis: {
       title: { text: yAxisTitle },
       min: 0,
-      tickInterval: 10,
       plotLines: showNormaAmbiental ? [
         {
           value: normaAmbientalValue,
@@ -134,11 +115,11 @@ const AreaChart = ({
     legend: { enabled: false },
     plotOptions: {
       area: {
-        connectNulls: false, // CRÍTICO: No conectar valores null
-        gapSize: 2, // Tamaño máximo del gap antes de romper la línea
-        gapUnit: 'relative', // 'value' para milisegundos, 'relative' para puntos
-        marker: { 
-          radius: 2, 
+        connectNulls: false,
+        gapSize: 2,
+        gapUnit: 'relative',
+        marker: {
+          radius: 2,
           enabled: false,
           states: {
             hover: {
@@ -149,12 +130,13 @@ const AreaChart = ({
         },
         lineWidth: 1,
         fillOpacity: 0.6,
-        states: { 
-          hover: { 
-            lineWidth: 2 
-          } 
+        states: {
+          hover: {
+            lineWidth: 2
+          }
         },
         threshold: null,
+        zones
       },
     },
     tooltip: {
@@ -167,38 +149,45 @@ const AreaChart = ({
         type: 'area',
         name: yAxisTitle,
         data: filledData,
-        turboThreshold: 0, // Permitir cualquier cantidad de puntos
-        connectNulls: false, // Redundante pero explícito
+        turboThreshold: 0,
+        connectNulls: false,
         tooltip: { valueSuffix: ' µg/m³' },
         zones,
-      },
-    ],
-    ...(showNavigator ? {
-      navigator: {
-        enabled: true,
-        adaptToUpdatedData: true,
-        series: {
-          type: 'area',
-          color: '#7cb5ec',
-          fillOpacity: 0.2
-        }
-      },
-      rangeSelector: {
-        enabled: true,
-        selected: 1,
-        inputEnabled: false,
-        buttons: [
-          { type: 'hour', count: 6, text: '6h' },
-          { type: 'day', count: 1, text: '1d' },
-          { type: 'all', text: 'Todo' }
-        ]
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, Highcharts.getOptions().colors[0]],
+            [1, Highcharts.color(Highcharts.getOptions().colors[0]).setOpacity(0.25).get()]
+          ]
+        },
+        threshold: null
       }
-    } : {})
+    ],
+    rangeSelector: {
+      buttons: [
+        { type: 'hour', count: 1, text: '1h' },
+        { type: 'day', count: 1, text: '1D' },
+        { type: 'all', count: 1, text: 'Todo' }
+      ],
+      selected: 1,
+      inputEnabled: false
+    },
+    navigator: {
+      enabled: true,
+      adaptToUpdatedData: true,
+      series: {
+        type: 'area',
+        color: '#7cb5ec',
+        fillOpacity: 0.2
+      }
+    },
+    credits: { enabled: false },
+    lang: {
+      rangeSelectorZoom: 'Rango'
+    }
   };
 
-  //console.log('Opciones de Highcharts:', options);
-
-  return <ChartWrapper options={options} />;
+  return <HighchartsReact highcharts={Highcharts} constructorType="stockChart" options={options} ref={chartComponentRef} />;
 };
 
-export default AreaChart;
+export default StockAreaChart; 

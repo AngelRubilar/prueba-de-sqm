@@ -18,6 +18,9 @@ router.get('/datos-PM10', graphDataLimiter, ctl.getPM10Data);
 // Endpoint para viento con rate limit específico
 router.get('/datos-viento', graphDataLimiter, ctl.getWindData);
 
+// Endpoint para viento específico de la estación Hospital con rate limit específico
+router.get('/datos-viento-hospital', graphDataLimiter, ctl.getHospitalWindData);
+
 // Endpoint para SO2 con rate limit específico
 router.get('/datos-SO2', graphDataLimiter, ctl.getSO2Data);
 

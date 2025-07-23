@@ -210,23 +210,20 @@ function SO2Grup1View() {
         </div>
       </div>
 
-      {/* Contenedor principal de las estaciones - 2 columnas */}
+      {/* Contenedor principal de las estaciones - 2 columnas, tarjetas compactas y gráficos grandes */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)', // 2 columnas fijas de igual tamaño
-          gap: 20,
-          padding: '0 20px 20px 20px',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 24,
+          padding: '0 24px 24px 24px',
           width: '100%',
-          height: 'calc(100vh - 120px)', // Altura calculada para aprovechar toda la vista
           margin: 0,
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
         }}
       >
         {so2Grup1Stations.map((cfg) => {
           const seriesData = getSeriesSO2(cfg.station);
-          console.log(`Datos pasados a AreaChart para ${cfg.title}:`, seriesData);
-
           return (
             <div
               key={cfg.station}
@@ -238,14 +235,16 @@ function SO2Grup1View() {
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                 width: '100%',
-                height: '100%', // Usar toda la altura disponible del grid
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 transition: 'all 0.3s ease',
                 position: 'relative',
                 overflow: 'hidden',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                minHeight: 'unset',
+                height: 'auto',
+                justifyContent: 'flex-start',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
@@ -266,12 +265,11 @@ function SO2Grup1View() {
                 background: 'linear-gradient(90deg, #27ae60, #2ecc71, #58d68d)',
                 borderRadius: '16px 16px 0 0'
               }} />
-
               {/* Título mejorado */}
               <div style={{
                 fontWeight: 700,
-                marginBottom: 16,
-                fontSize: 20, // Tamaño para 2 columnas
+                marginBottom: 18,
+                fontSize: 20,
                 textAlign: 'center',
                 color: '#2c3e50',
                 fontFamily: 'Roboto, sans-serif',
@@ -281,22 +279,20 @@ function SO2Grup1View() {
               }}>
                 {cfg.title.toUpperCase()}
               </div>
-
               {/* Gráfico SO₂ con contenedor mejorado */}
               <div style={{
                 background: 'rgba(255,255,255,0.7)',
                 borderRadius: 12,
-                padding: 16,
+                padding: 18,
                 boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
                 border: '1px solid rgba(255,255,255,0.5)',
                 width: '100%',
-                flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0
               }}>
                 <div style={{
-                  fontSize: 18, // Tamaño para 2 columnas
+                  fontSize: 16,
                   fontWeight: 600,
                   color: '#2c3e50',
                   marginBottom: 12,
@@ -312,8 +308,8 @@ function SO2Grup1View() {
                     title=""
                     data={seriesData}
                     yAxisTitle="SO₂ (µg/m³)"
-                    height={null} // Permitir que se ajuste automáticamente
-                    width={null} // Usar el ancho completo disponible
+                    height={null}
+                    width={null}
                     showNormaAmbiental={true}
                     normaAmbientalValue={350}
                     zones={[

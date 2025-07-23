@@ -305,9 +305,9 @@ function PM10Grup2View() {
                     title=""
                     data={seriesData}
                     yAxisTitle="PM10 (µg/m³)"
-                    height={null} // Permitir que se ajuste automáticamente
-                    width={null} // Usar el ancho completo disponible
-                    expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
+                    height={null}
+                    width={null}
+                    expectedInterval={10 * 60 * 1000}
                     showNormaAmbiental={true}
                     normaAmbientalValue={130}
                     zones={[

@@ -10,6 +10,7 @@ import PM10Grup1View from './page/PM10Grup1View';
 import PM10Grup2View from './page/PM10Grup2View';
 import SO2Grup1View from './page/SO2Grup1View';
 import SO2Grup2View from './page/SO2Grup2View';
+import HospitalDashboard from './page/HospitalDashboard';
 
 function App() {
   return (
@@ -45,6 +46,9 @@ function App() {
             <li>
               <Link to="/so2-grup2" className="text-green-700 hover:underline">SO2 Grupo 2</Link>
             </li>
+            <li>
+              <Link to="/hospital" className="text-red-700 hover:underline">Estación Hospital</Link>
+            </li>
           </ul>
         </nav>
 
@@ -59,6 +63,7 @@ function App() {
           <Route path="/pm10-grup2" element={<PM10Grup2View />} />
           <Route path="/so2-grup1" element={<SO2Grup1View />} />
           <Route path="/so2-grup2" element={<SO2Grup2View />} />
+          <Route path="/hospital" element={<HospitalDashboard />} />
         </Routes>
       </div>
     </Router>

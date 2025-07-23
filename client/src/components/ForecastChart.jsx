@@ -11,7 +11,7 @@ HighchartsExporting(Highcharts);
 HighchartsExportData(Highcharts);
 HighchartsAccessibility(Highcharts);
 
-const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
+const ForecastChart = ({ title, forecastData, realData, rangeData, height = 400 }) => {
   const chartRef = useRef(null);
 
   // Obtener la hora actual
@@ -83,7 +83,7 @@ const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
             ]
           },
           {
-            name: 'Rango',
+            name: 'Real',
             data: rangeData || [],
             type: 'arearange',
             lineWidth: 0,
@@ -102,7 +102,7 @@ const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
             ]
           },
           {
-            name: 'Real',
+            name:'Rango',
             // Usar directamente los datos reales filtrados sin alineación forzada
             data: realDataFiltered,
             type: 'line',
@@ -130,7 +130,7 @@ const ForecastChart = ({ title, forecastData, realData, rangeData }) => {
   }, [title, forecastData, realData, rangeData]);
 
   return (
-    <div ref={chartRef} style={{ height: '400px' }} />
+    <div ref={chartRef} style={{ height: `${height}px` }} />
   );
 };
 

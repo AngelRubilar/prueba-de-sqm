@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { pm10Stations } from '../config/stations';
+import { pm10Stations, hasVariable } from '../config/stations';
 import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import SkeletonLoader from '../components/SkeletonLoader';
-import mapaHuara from '../assets/estacionsqm.png';
+import mapaHuara from '../assets/images.png';
 
 // Mapeo de códigos de estación a nombres usados en forecastData
 const stationKeyMap = {
@@ -553,90 +553,95 @@ function EstacionesDashboard() {
                           minute: '2-digit',
                           day: '2-digit',
                           month: '2-digit'
-                        }) : 'N/A'}
+                        }) : 'Sin Datos'}
                       </div>
                     </div>
                   </div>
 
-                  {/* Indicador SO2 mejorado */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #2ecc71, #27ae60)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(46, 204, 113, 0.3)',
-                    minWidth: 200
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      SO₂ (μg/m³)
+                  {/* Indicadores dinámicos basados en variables disponibles */}
+                  {hasVariable(cfg.station, 'SO2') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #2ecc71, #27ae60)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(46, 204, 113, 0.3)',
+                      minWidth: 200
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        SO₂ (μg/m³)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {so2 ?? 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {so2 ?? 'N/A'}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Indicador Humedad Relativa */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #3498db, #2980b9)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
-                    minWidth: 200
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      💧 HR (%)
+                  {hasVariable(cfg.station, 'HR') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #3498db, #2980b9)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
+                      minWidth: 200
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        💧 HR (%)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {hr ? hr.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {hr ? hr.toFixed(1) : 'N/A'}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Indicador Temperatura */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #e67e22, #d35400)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
-                    minWidth: 200
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      🌡️ Temp (°C)
+                  {hasVariable(cfg.station, 'TEMP') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #e67e22, #d35400)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
+                      minWidth: 200
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        🌡️ Temp (°C)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {temperatura ? temperatura.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {temperatura ? temperatura.toFixed(1) : 'N/A'}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Indicador PM2.5 */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
-                    minWidth: 200
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      🌫️ PM2.5 (μg/m³)
+                  {hasVariable(cfg.station, 'PM25') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
+                      minWidth: 200
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        🌫️ PM2.5 (μg/m³)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {pm25 ? pm25.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {pm25 ? pm25.toFixed(1) : 'N/A'}
-                    </div>
-                  </div>
+                  )}
                 </div>
                 {/* DERECHA: Gráficos - Maximizado */}
                 <div style={{
@@ -674,6 +679,13 @@ function EstacionesDashboard() {
                       expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
                       showNormaAmbiental={true}
                       normaAmbientalValue={130}
+                      zones={[
+                        { value: 130, color: '#15b01a' },
+                        { value: 180, color: '#fbfb00' },
+                        { value: 230, color: '#ffa400' },
+                        { value: 330, color: '#ff0000' },
+                        { value: 10000, color: '#8a3d92' },
+                      ]}
                     />
                   </div>
 

@@ -45,9 +45,19 @@ async function getVariablesData(req, res, next) {
   }
 }
 
+async function getHospitalWindData(req, res, next) {
+  try {
+    const data = await service.fetchHospitalWindData();
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   getPM10Data,
   getWindData,
   getSO2Data,
-  getVariablesData
+  getVariablesData,
+  getHospitalWindData
 };

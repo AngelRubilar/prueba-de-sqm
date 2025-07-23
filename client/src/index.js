@@ -27,6 +27,7 @@ import PM10Grup1View from './page/PM10Grup1View';
 import PM10Grup2View from './page/PM10Grup2View';
 import SO2Grup1View from './page/SO2Grup1View';
 import SO2Grup2View from './page/SO2Grup2View';
+import HospitalDashboard from './page/HospitalDashboard';
 import './index.css';
 
 const container = document.getElementById('root');
@@ -47,6 +48,7 @@ root.render(
       <Route path="/pm10-grup2" element={<PM10Grup2View />} />
       <Route path="/so2-grup1" element={<SO2Grup1View />} />
       <Route path="/so2-grup2" element={<SO2Grup2View />} />
+      <Route path="/hospital" element={<HospitalDashboard />} />
     </Routes>
   </Router>
 );

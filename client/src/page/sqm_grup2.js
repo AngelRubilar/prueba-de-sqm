@@ -2,18 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchVariablesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import SkeletonLoader from '../components/SkeletonLoader';
-import estacionsqmImg from '../assets/estacionsqm.png';
+import estacionsqmImg from '../assets/images.png';
+import { hasVariable, sqmGrup2Stations } from '../config/stations';
 
-// Mapeo de estaciones a nombres para el Grupo 2
-const stations = [
-  { code: 'E1', name: 'Mejillones' },
-  { code: 'E2', name: 'Sierra Gorda' },
-  { code: 'E4', name: 'Maria Elena' },
-  { code: 'E5', name: 'Hospital' },
-  { code: 'E11', name: 'Muelle 1' },
-  { code: 'E14', name: 'Coya Sur' },
-  { code: 'E15', name: 'Covadonga' },
-];
+// Eliminar el array local stations y usar sqmGrup2Stations
 
 function SqmGrup2() {
   const [pm10Data, setPm10Data] = useState([]);
@@ -25,8 +17,12 @@ function SqmGrup2() {
 
   // Carrusel automático y grupos
   const [currentGroup, setCurrentGroup] = useState(0);
-  // Dividir en grupos de 4 y el resto
-  const groups = [stations.slice(0, 4), stations.slice(4)];
+  // Dividir en grupos de 4, 4 y 2 estaciones
+  const groups = [
+    sqmGrup2Stations.slice(0, 4), 
+    sqmGrup2Stations.slice(4, 8), 
+    sqmGrup2Stations.slice(8)
+  ];
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentGroup((prev) => (prev + 1) % groups.length);
@@ -95,11 +91,7 @@ function SqmGrup2() {
   const getUltimaTemperatura = (station) => getUltimaVariable(station, 'Temperatura');
   const getUltimaPM25 = (station) => getUltimaVariable(station, 'PM2_5');
 
-  // Función para verificar si una estación tiene datos de variables múltiples
-  const hasMultipleVariablesData = (station) => {
-    const stationsWithMultipleData = ['E1', 'E2', 'E5', 'E6', 'E7', 'E8'];
-    return stationsWithMultipleData.includes(station);
-  };
+
 
   const getUltimoViento = (station) => {
     const datos = windData.filter(d => d.station_name === station);
@@ -288,15 +280,15 @@ function SqmGrup2() {
         }}
       >
         {groups[currentGroup].map(station => {
-          const viento = getUltimoViento(station.code);
-          const so2 = getUltimoSO2(station.code);
-          const hr = getUltimaHR(station.code);
-          const temperatura = getUltimaTemperatura(station.code);
-          const pm25 = getUltimaPM25(station.code);
+          const viento = getUltimoViento(station.station);
+          const so2 = getUltimoSO2(station.station);
+          const hr = getUltimaHR(station.station);
+          const temperatura = getUltimaTemperatura(station.station);
+          const pm25 = getUltimaPM25(station.station);
 
           return (
             <div
-              key={station.code}
+              key={station.station}
               style={{
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: 16,
@@ -345,7 +337,7 @@ function SqmGrup2() {
                 letterSpacing: '0.5px',
                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }}>
-                {station.name.toUpperCase()}
+                {station.title.toUpperCase()}
               </div>
 
               {/* Layout horizontal igual a SQMGrup1y */}
@@ -427,9 +419,8 @@ function SqmGrup2() {
                       </div>
                     </div>
                   </div>
-                  {/* Indicadores */}
-                  {/* SO2 solo si la estación tiene datos de SO2 */}
-                  {so2 !== undefined && so2 !== null && (
+                  {/* Indicadores dinámicos basados en variables disponibles */}
+                  {hasVariable(station.station, 'SO2') && (
                     <div style={{
                       background: 'linear-gradient(135deg, #2ecc71, #27ae60)',
                       color: 'white',
@@ -445,64 +436,70 @@ function SqmGrup2() {
                         SO₂ (μg/m³)
                       </div>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {so2 !== null && so2 !== undefined ? so2 : 'N/A'}
+                        {so2 !== null && so2 !== undefined ? so2 : 'Sin Datos'}
                       </div>
                     </div>
                   )}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #3498db, #2980b9)',
-                    color: 'white',
-                    padding: '9px 15px',
-                    borderRadius: 9,
-                    textAlign: 'center',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
-                    minWidth: 150
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      💧 HR (%)
+                  {hasVariable(station.station, 'HR') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #3498db, #2980b9)',
+                      color: 'white',
+                      padding: '9px 15px',
+                      borderRadius: 9,
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(52, 152, 219, 0.3)',
+                      minWidth: 150
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        💧 HR (%)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {hr !== null && hr !== undefined ? hr.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {hr !== null && hr !== undefined ? hr.toFixed(1) : 'N/A'}
+                  )}
+                  {hasVariable(station.station, 'TEMP') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #e67e22, #d35400)',
+                      color: 'white',
+                      padding: '9px 15px',
+                      borderRadius: 9,
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
+                      minWidth: 150
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        🌡️ Temp (°C)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {temperatura !== null && temperatura !== undefined ? temperatura.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{
-                    background: 'linear-gradient(135deg, #e67e22, #d35400)',
-                    color: 'white',
-                    padding: '9px 15px',
-                    borderRadius: 9,
-                    textAlign: 'center',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(230, 126, 34, 0.3)',
-                    minWidth: 150
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      🌡️ Temp (°C)
+                  )}
+                  {hasVariable(station.station, 'PM25') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                      color: 'white',
+                      padding: '9px 15px',
+                      borderRadius: 9,
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
+                      minWidth: 150
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        🌫️ PM2.5 (μg/m³)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {pm25 !== null && pm25 !== undefined ? pm25.toFixed(1) : 'Sin Datos'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {temperatura !== null && temperatura !== undefined ? temperatura.toFixed(1) : 'N/A'}
-                    </div>
-                  </div>
-                  <div style={{
-                    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
-                    color: 'white',
-                    padding: '9px 15px',
-                    borderRadius: 9,
-                    textAlign: 'center',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(155, 89, 182, 0.3)',
-                    minWidth: 150
-                  }}>
-                    <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                      🌫️ PM2.5 (μg/m³)
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>
-                      {pm25 !== null && pm25 !== undefined ? pm25.toFixed(1) : 'N/A'}
-                    </div>
-                  </div>
+                  )}
                 </div>
                 {/* DERECHA: Gráficos - Maximizado */}
                 <div style={{
@@ -513,35 +510,44 @@ function SqmGrup2() {
                   justifyContent: 'flex-start',
                   minWidth: 0
                 }}>
-                  {/* Gráfico PM10 con contenedor mejorado */}
-                  <div style={{
-                    background: 'rgba(255,255,255,0.7)',
-                    borderRadius: 12,
-                    padding: 12,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-                    border: '1px solid rgba(255,255,255,0.5)'
-                  }}>
+                  {/* Gráfico PM10 con contenedor mejorado - solo si la estación tiene PM10 */}
+                  {hasVariable(station.station, 'PM10') && (
                     <div style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: '#2c3e50',
-                      marginBottom: 9,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8
+                      background: 'rgba(255,255,255,0.7)',
+                      borderRadius: 12,
+                      padding: 12,
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+                      border: '1px solid rgba(255,255,255,0.5)'
                     }}>
-                      📊 PM10 (μg/m³)
+                      <div style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#2c3e50',
+                        marginBottom: 9,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}>
+                        📊 PM10 (μg/m³)
+                      </div>
+                      <AreaChart
+                        title=""
+                        width={null}
+                        height={200}
+                        data={getSeriePM10(station.station)}
+                        expectedInterval={10 * 60 * 1000}
+                        showNormaAmbiental={true}
+                        normaAmbientalValue={130}
+                        zones={[
+                          { value: 130, color: '#15b01a' },
+                          { value: 180, color: '#fbfb00' },
+                          { value: 230, color: '#ffa400' },
+                          { value: 330, color: '#ff0000' },
+                          { value: 10000, color: '#8a3d92' },
+                        ]}
+                      />
                     </div>
-                    <AreaChart
-                      title=""
-                      width={null}
-                      height={150}
-                      data={getSeriePM10(station.code)}
-                      expectedInterval={10 * 60 * 1000}
-                      showNormaAmbiental={true}
-                      normaAmbientalValue={130}
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

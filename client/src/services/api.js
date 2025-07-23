@@ -44,6 +44,16 @@ export function fetchVientoData() {
 }
 
 /**
+ * Obtiene datos de viento específicos de la estación Hospital desde el backend
+ * @returns {Promise<Array>} Array de registros [{timestamp, station_name, velocidad, direccion}, ...]
+ */
+export function fetchHospitalWindData() {
+  console.log('BASE URL:', process.env.REACT_APP_API_URL || '/api');
+  return api.get('/datos-viento-hospital')
+    .then(res => res.data);
+}
+
+/**
  * Obtiene datos de SO2 desde el backend
  * @returns {Promise<Array>} Array de registros [{timestamp, station_name, valor}, ...]
  */

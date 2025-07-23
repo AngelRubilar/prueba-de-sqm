@@ -3,17 +3,9 @@ import { fetchPM10Data } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import RateLimitError from '../components/RateLimitError';
 import SkeletonLoader from '../components/SkeletonLoader';
+import { pm10Grup1Stations } from '../config/stations';
 
-// Estaciones del Grupo 1
-const pm10Grup1Stations = [
-  { title: 'Estación Victoria', station: 'E7' },
-  { title: 'Estación Victoria (sercoamb)', station: 'E10' },
-  { title: 'Estación Colonia Pintados', station: 'E8' },
-  { title: 'Estación Nueva Victoria', station: 'E12' },
-  { title: 'Estación Sur Viejo', station: 'E13' },
-  { title: 'Estación Huara', station: 'E6' },
-  { title: 'Estación Tamentica (sercoamb)', station: 'E9' },
-];
+
 
 function PM10Grup1View() {
   const [pm10Data, setPm10Data] = useState([]);
@@ -205,15 +197,15 @@ function PM10Grup1View() {
         </div>
       </div>
 
-      {/* Contenedor principal de las estaciones - 2 filas x 3 columnas */}
+      {/* Contenedor principal de las estaciones - 3 columnas compactas para 1080p */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)', // 3 columnas fijas de igual tamaño
-          gap: 20,
-          padding: '0 20px 20px 20px',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 15,
+          padding: '0 15px 15px 15px',
           width: '100%',
-          height: 'calc(100vh - 120px)', // Altura calculada para aprovechar toda la vista
+          height: 'calc(100vh - 90px)',
           margin: 0,
           boxSizing: 'border-box'
         }}
@@ -226,13 +218,13 @@ function PM10Grup1View() {
               key={cfg.station}
               style={{
                 border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 16,
-                padding: 20,
+                borderRadius: 12,
+                padding: 15,
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                boxShadow: '0 6px 24px rgba(0,0,0,0.1)',
                 width: '100%',
-                height: '100%', // Usar toda la altura disponible del grid
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -242,12 +234,12 @@ function PM10Grup1View() {
                 boxSizing: 'border-box'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15)';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 9px 30px rgba(0,0,0,0.13)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,0,0,0.1)';
               }}
             >
               {/* Decoración superior con gradiente azul para PM10 */}
@@ -256,16 +248,16 @@ function PM10Grup1View() {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 4,
+                height: 3,
                 background: 'linear-gradient(90deg, #3498db, #2980b9, #1abc9c)',
-                borderRadius: '16px 16px 0 0'
+                borderRadius: '12px 12px 0 0'
               }} />
 
               {/* Título mejorado */}
               <div style={{
                 fontWeight: 700,
-                marginBottom: 16,
-                fontSize: 18, // Tamaño para 3 columnas
+                marginBottom: 12,
+                fontSize: 14, // Tamaño reducido para 1080p
                 textAlign: 'center',
                 color: '#2c3e50',
                 fontFamily: 'Roboto, sans-serif',
@@ -279,9 +271,9 @@ function PM10Grup1View() {
               {/* Gráfico PM10 con contenedor mejorado */}
               <div style={{
                 background: 'rgba(255,255,255,0.7)',
-                borderRadius: 12,
-                padding: 16,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+                borderRadius: 9,
+                padding: 12,
+                boxShadow: '0 1.5px 9px rgba(0,0,0,0.04)',
                 border: '1px solid rgba(255,255,255,0.5)',
                 width: '100%',
                 flex: 1,
@@ -290,13 +282,13 @@ function PM10Grup1View() {
                 minHeight: 0
               }}>
                 <div style={{
-                  fontSize: 16, // Tamaño para 3 columnas
+                  fontSize: 12, // Tamaño reducido para 1080p
                   fontWeight: 600,
                   color: '#2c3e50',
-                  marginBottom: 12,
+                  marginBottom: 9,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 6,
                   flexShrink: 0
                 }}>
                   📊 PM10 (μg/m³)
@@ -306,7 +298,7 @@ function PM10Grup1View() {
                     title=""
                     data={seriesData}
                     yAxisTitle="PM10 (µg/m³)"
-                    height={null} // Permitir que se ajuste automáticamente
+                    height={120} // Altura fija para 1080p
                     width={null} // Usar el ancho completo disponible
                     expectedInterval={10 * 60 * 1000} // rango de intervalo esperado de 10 minutos
                     showNormaAmbiental={true}
