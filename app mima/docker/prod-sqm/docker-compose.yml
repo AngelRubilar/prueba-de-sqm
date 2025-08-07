@@ -1,0 +1,69 @@
+services:
+  nginx:
+    build:
+      context: ../..
+      dockerfile: docker/prod-sqm/nginx/Dockerfile
+    container_name: nginx-container-sqm
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../../app:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/sites-available/nginx.conf
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - php-fpm
+    networks:
+      - app-network
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+
+  php-fpm:
+    build:
+      context: ../..
+      dockerfile: docker/prod-sqm/Dockerfile
+    volumes:
+      - ../../app:/var/www/html
+    container_name: php-fpm-sqm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - app-network
+
+
+  db:
+    build:
+      context: ./mysql
+    volumes:
+      - db_data:/var/lib/mysql
+    container_name: mysql-sqm
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      # MYSQL_DATABASE: promimairemlp_fc
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 6wkWY&LZ=zjvT8g
+    ports:
+      - '3306:3306'
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-sqm
+    environment:
+      PMA_HOST: db
+      UPLOAD_LIMIT: 2048M
+    ports:
+      - '8082:80'
+    networks:
+      - app-network
+volumes:
+  db_data:
+networks:
+  app-network:
+    driver: bridge

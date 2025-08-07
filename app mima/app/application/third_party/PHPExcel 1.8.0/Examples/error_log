@@ -1,0 +1,6 @@
+[06-Oct-2014 18:58:40 Europe/London] PHP Fatal error:  Uncaught exception 'PHPExcel_Writer_Exception' with message 'Error zipping files : PCLZIP_ERR_READ_OPEN_FAIL (-2) : Unable to open temporary file '/tmppclzip-5432d8507742d.tmp' in binary write mode' in /home/edumetro/public_html/centrodecontrol/recursos/PHPExcel/Classes/PHPExcel/Shared/ZipArchive.php:108
+Stack trace:
+#0 /home/edumetro/public_html/centrodecontrol/recursos/PHPExcel/Classes/PHPExcel/Writer/Excel2007.php(278): PHPExcel_Shared_ZipArchive->addFromString('_rels/.rels', '<?xml version="...')
+#1 /home/edumetro/public_html/centrodecontrol/recursos/PHPExcel/Examples/01simplePCLZip.php(91): PHPExcel_Writer_Excel2007->save('/home/edumetro/...')
+#2 {main}
+  thrown in /home/edumetro/public_html/centrodecontrol/recursos/PHPExcel/Classes/PHPExcel/Shared/ZipArchive.php on line 108

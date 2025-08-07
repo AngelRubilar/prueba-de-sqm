@@ -1,0 +1,77 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "e6ef968f3efa8c94be7585ad1624a89c",
+    "packages": [
+        {
+            "name": "kachkaev/php-r",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kachkaev/php-r.git",
+                "reference": "d8daf7125a72b14b9eb7e17096a480156d682684"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kachkaev/php-r/zipball/d8daf7125a72b14b9eb7e17096a480156d682684",
+                "reference": "d8daf7125a72b14b9eb7e17096a480156d682684",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.9"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-0": {
+                    "Kachkaev\\PHPR\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Alexander Kachkaev",
+                    "email": "alexander@kachkaev.ru",
+                    "homepage": "http://en.kachkaev.ru/"
+                },
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/kachkaev/php-r/contributors"
+                }
+            ],
+            "description": "Provides ability to run R scripts from PHP",
+            "homepage": "https://github.com/kachkaev/php-r",
+            "keywords": [
+                "Bridge",
+                "r",
+                "statistical analysis",
+                "stats"
+            ],
+            "support": {
+                "issues": "https://github.com/kachkaev/php-r/issues",
+                "source": "https://github.com/kachkaev/php-r/tree/master"
+            },
+            "abandoned": true,
+            "time": "2017-12-08T10:23:22+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "plugin-api-version": "2.3.0"
+}

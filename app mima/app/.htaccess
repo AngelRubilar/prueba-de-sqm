@@ -1,0 +1,55 @@
+# Desactivar el listado de directorios
+Options -Indexes
+
+# Manejar la redirección y reescritura de URL
+
+    RewriteEngine On
+    RewriteBase /
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php?/$1 [L,QSA]
+    RewriteCond %{REQUEST_URI} ^system.*
+    RewriteRule ^(.*)$ /index.php?/$1 [L]
+    RewriteCond %{REQUEST_URI} ^application.*
+    RewriteRule ^(.*)$ /index.php?/$1 [L]
+    # Pasar Authorization header
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    # Redirigir HTTP a HTTPS
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
+    # Evitar procesamiento para .well-known
+    RewriteRule ^.well-known/ - [L,NC]
+
+
+# Configuraciones de CORS
+<IfModule mod_headers.c>
+    Header add Access-Control-Allow-Origin "*"
+    Header add Access-Control-Allow-Methods "GET,POST,OPTIONS,DELETE,PUT"
+    Header add Access-Control-Allow-Headers "Authorization, Content-Type, Access-Control-Allow-Headers, X-Requested-With"
+    Header always set Access-Control-Allow-Headers "Authorization"
+</IfModule>
+
+# Configuraciones de seguridad
+<IfModule mod_security.c>
+    SecRequestBodyNoFilesLimit 500242880
+    SecRequestBodyAccess Off
+</IfModule>
+
+# Configurar el entorno de CI
+SetEnv CI_ENVIRONMENT production
+
+# Configuraciones de PHP generadas por cPanel (mantener como están)
+# BEGIN cPanel-generated php ini directives, do not edit
+# Para cambios, usar el MultiPHP INI Editor en cPanel
+<IfModule php7_module>
+</IfModule>
+<IfModule lsapi_module>
+</IfModule>
+# END cPanel-generated php ini directives, do not edit
+
+# Configuraciones de manejador PHP generadas por cPanel
+# BEGIN cPanel-generated handler, do not edit
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php70 .php .php7 .phtml
+</IfModule>
+# END cPanel-generated handler, do not edit

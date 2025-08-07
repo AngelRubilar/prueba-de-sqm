@@ -1,0 +1,3 @@
+# Example crontab entry
+0 2 * * *  /backup.sh > /proc/1/fd/1 2>/proc/1/fd/2
+* * * * *  echo "Cron job executed at $(date)" >> /backup/cron_test.log 2>&1

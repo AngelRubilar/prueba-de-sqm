@@ -1,0 +1,516 @@
+/*Write your custom css in this file.*/
+
+
+/***
+Tiles(new in v1.1.1)
+***/
+
+.tiles {
+    margin-right: -10px;
+}
+
+.tiles:before,
+.tiles:after {
+    display: table;
+    content: " ";
+}
+
+.tiles:after {
+    clear: both;
+}
+
+.tile {
+    display: block;
+    letter-spacing: 0.02em;
+    /*float: left;*/
+    height: 135px;
+    width: 135px !important;
+    cursor: pointer;
+    text-decoration: none;
+    color: #ffffff;
+    position: relative;
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    line-height: 20px;
+    overflow: hidden;
+    border: 4px solid transparent;
+    margin: 10px 0 10px 0;
+}
+
+.tile:after,
+.tile:before {
+    content: "";
+    /*float: left; */
+}
+
+.tile.double {
+    width: 280px !important;
+}
+
+.tile.double-down {
+    height: 280px !important;
+}
+
+.tile:active,
+.tile.selected {
+    border-color: #ccc !important;
+}
+
+.tile:hover {
+    border-color: #aaa !important;
+}
+
+.tile.selected .corner:after {
+    content: "";
+    display: inline-block;
+    border-left: 40px solid transparent;
+    border-bottom: 40px solid transparent;
+    border-right: 40px solid #ccc;
+    position: absolute;
+    top: -3px;
+    right: -3px;
+}
+
+.tile.selected .check:after {
+    content: "";
+    font-family: FontAwesome;
+    font-size: 13px;
+    content: "\f00c";
+    display: inline-block;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}
+
+.tile * {
+    color: #ffffff;
+}
+
+.tile .tile-body {
+    height: 100%;
+    vertical-align: top;
+    padding: 10px 10px;
+    overflow: hidden;
+    position: relative;
+    font-weight: 400;
+    font-size: 12px;
+    color: #000000;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.tile .tile-body img {
+    float: left;
+    margin-right: 10px;
+}
+
+.tile .tile-body img.pull-right {
+    float: right !important;
+    margin-left: 10px;
+    margin-right: 0px;
+}
+
+.tile .tile-body .content {
+    display: inline-block;
+}
+
+.tile .tile-body>i {
+    margin-top: 17px;
+    display: block;
+    font-size: 56px;
+    line-height: 56px;
+    text-align: center;
+}
+
+.tile.double-down i {
+    margin-top: 95px;
+}
+
+.tile .tile-body h1,
+.tile .tile-body h2,
+.tile .tile-body h3,
+.tile .tile-body h4,
+.tile .tile-body h5,
+.tile .tile-body h6,
+.tile .tile-body p {
+    padding: 0;
+    margin: 0;
+    line-height: 14px;
+}
+
+.tile .tile-body h3,
+.tile .tile-body h4 {
+    margin-bottom: 5px;
+}
+
+.tile .tile-body h1:hover,
+.tile .tile-body h2:hover,
+.tile .tile-body h3:hover,
+.tile .tile-body h4:hover,
+.tile .tile-body h5:hover,
+.tile .tile-body h6:hover,
+.tile .tile-body p:hover {
+    color: #ffffff;
+}
+
+.tile .tile-body p {
+    font-weight: 400;
+    font-size: 13px;
+    color: #000000;
+    color: #ffffff;
+    line-height: 20px;
+    overflow: hidden;
+}
+
+.tile .tile-body p:hover {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.tile .tile-body p:active {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.tile .tile-body p:hover {
+    color: #ffffff;
+}
+
+.tile.icon>.tile-body {
+    padding: 0;
+}
+
+.tile .tile-object {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 30px;
+    background-color: transparent;
+    *zoom: 1;
+}
+
+.tile .tile-object:before,
+.tile .tile-object:after {
+    display: table;
+    content: "";
+}
+
+.tile .tile-object:after {
+    clear: both;
+}
+
+.tile .tile-object>.name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    margin-bottom: 5px;
+    margin-left: 10px;
+    margin-right: 15px;
+    font-weight: 400;
+    font-size: 13px;
+    color: #ffffff;
+}
+
+.tile .tile-object>.name>i {
+    vertical-align: middle;
+    display: block;
+    font-size: 24px;
+    height: 18px;
+    width: 24px;
+}
+
+.tile .tile-object>.number {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin-bottom: 0;
+    color: #ffffff;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    line-height: 14px;
+    margin-bottom: 8px;
+    margin-right: 10px;
+}
+
+.tile.image>.tile-body {
+    padding: 0 !important;
+}
+
+.tile.image>.tile-body>img {
+    width: 100%;
+    height: auto;
+    min-height: 100%;
+    max-width: 100%;
+}
+
+.tile.image .tile-body h3 {
+    display: inline-block;
+}
+
+
+/***
+General backgrounds. Can be applied to any block or panel
+***/
+
+.bg-blue {
+    background-image: none !important;
+    background-color: #4b8df8 !important;
+    border-color: #4b8df8 !important;
+    color: #fff !important;
+}
+
+.bg-red {
+    background-image: none !important;
+    background-color: #e02222 !important;
+    border-color: #e02222 !important;
+    color: #fff !important;
+}
+
+.bg-yellow {
+    background-image: none !important;
+    background-color: #ffb848 !important;
+    border-color: #ffb848 !important;
+    color: #fff !important;
+}
+
+.bg-green {
+    background-image: none !important;
+    background-color: #35aa47 !important;
+    border-color: #35aa47 !important;
+    color: #fff !important;
+}
+
+.bg-purple {
+    background-image: none !important;
+    background-color: #852b99 !important;
+    border-color: #852b99 !important;
+    color: #fff !important;
+}
+
+.bg-dark {
+    background-image: none !important;
+    background-color: #555555 !important;
+    border-color: #555555 !important;
+    color: #fff !important;
+}
+
+.bg-grey {
+    background-image: none !important;
+    background-color: #fafafa !important;
+    border-color: #fafafa !important;
+}
+
+div.huella:hover {
+    background-color: #eaedf2;
+    color: #000;
+}
+
+.form-control {
+    font-size: 13px !important;
+}
+
+.ms-container,
+.ms-container .ms-selectable li.ms-elem-selectable,
+.ms-container .ms-selection li.ms-elem-selection {
+    font-size: 13px !important;
+}
+
+.note-group-image-url {
+    display: none !important;
+}
+
+.panel-list {
+    background-color: #f3f3f3;
+    color: #000;
+}
+
+span.border-circle img {
+    border: solid white 3px;
+}
+
+#mCSB_1_dragger_vertical {
+    height: 130px !important;
+    /* height of the scrollbar */
+}
+
+.mCSB_dragger_bar {
+    background-color: #ececec !important;
+    /* color of the dragger bar */
+}
+
+.mCSB_scrollTools .mCSB_dragger .mCSB_dragger_bar {
+    width: 10px !important;
+    /* width of the dragger bar */
+}
+
+.mCSB_scrollTools .mCSB_draggerRail {
+    background-color: #888888 !important;
+    /* color of the rail */
+    width: 10px !important;
+    /* width of the rail for dragger bar */
+}
+
+#sidebar-menu li {
+    z-index: 0 !important;
+}
+
+#div.mCSB_draggerRail {
+    z-index: 999 !important;
+}
+
+#mCSB_2_scrollbar_vertical>div>div.mCSB_draggerRail {
+    margin-right: 20px !important;
+}
+
+#mCSB_2_dragger_vertical>div {
+    margin-right: 20px !important;
+}
+
+
+/*#sidebar {
+	background: #141c27 !important;
+}*/
+
+.no_breakline {
+    white-space: nowrap !important;
+}
+
+
+/* 
+ * Este estilo se aplica para que el botón de los appTable que muestra las columnas (ícono ojo) muestre bien las columnas.
+ * Cuando hay muchas columnas en el appTable, no se veian todas 
+ */
+
+.popover-content {
+    padding: 15px;
+    height: 200px;
+    overflow-y: scroll;
+}
+
+.p10 {
+    padding: 10px;
+}
+
+.p18 {
+    padding: 17px;
+}
+
+.p0 {
+    padding: 0px;
+}
+
+.m20_left {
+    margin-left: 20px;
+}
+
+.widget-icon {
+    /*float: left;*/
+    font-size: 80px;
+    min-height: 80px;
+    line-height: 35px;
+    opacity: 0.5;
+}
+
+
+/* SOLUCION A SOBREPOSICION DE CONTENIDO DE MODAL SOBRE BOTONES CUANDO SE ARROJABA MENSAJE DE ERRORES DE VALIDACION */
+
+
+/* FINALMENTE SE CAMBIO LA POSICION DEL ERROR */
+
+
+/*.modal .modal-body{
+  overflow: hidden !important;
+}*/
+
+
+/* HACER QUE SE VEAN LAS ALERTAS DE ERRORES SOBRE LA OPACIDAD DEL MODAL */
+
+.app-alert.animate {
+    z-index: 9999 !important;
+}
+
+
+/* HACER APARECER FLECHAS APUNTANTO HACIA ABAJO DEL MENU DESPUES DE ACTUALIZAR FONTAWESOME AL 5 */
+
+#sidebar-menu li.expand.open>a:before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: '\f107' !important;
+    /*content: '\f107';*/
+}
+
+#sidebar-menu li.expand>a:before {
+    position: relative;
+    content: '\f105';
+    display: inline-block;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    color: #7988a2;
+    float: right;
+    font-size: 11px;
+    margin-left: 15px;
+    top: 0px;
+    -webkit-transition: all 300ms;
+    transition: all 300ms;
+}
+
+
+/* HACER QUE EL MENU DEL DATEPICKER NO SEA TAPADO POR EL NAVBAR */
+
+div.datepicker.datepicker-dropdown.dropdown-menu.datepicker-orient-left.datepicker-orient-top {
+    z-index: 9999 !important;
+}
+
+
+/* AJUSTAR EL TAMAÑO DE LOS ITEMES DEL MENÚ DE HOME */
+
+.menu-item-home {
+    height: 140px;
+}
+
+.menu-item-img-home {
+    height: 110px !important;
+}
+
+
+/* COLORES */
+
+.color-success {
+    color: #5cb85c !important;
+}
+
+.color-warning {
+    color: #ec971f !important;
+}
+
+.color-danger {
+    color: #d9534f !important;
+}
+
+
+/* SOMBRAS: PARA ICONOS DE MODULOS */
+
+.shadow-2 {
+    webkit-box-shadow: 0 8px 13px 0 rgba(0, 0, 0, .2), 0 6px 20px 0 rgba(0, 0, 0, .19)!important;
+    box-shadow: 0 8px 13px 0 rgba(0, 0, 0, .2), 0 6px 20px 0 rgba(0, 0, 0, .19)!important;
+}
+
+.app-loader{
+    z-index: 999 !important;
+}
+
+.upload-thumbnail-xs{
+    height: 50px;
+    width: 50px;
+    border: none !important;
+    background: url('../images/filepreview.jpg') #eee no-repeat center center;
+    outline: none;
+}
+
+.upload-progress-xs{
+    width: 55px;
+    height: 5px;
+    border-radius: 0px;
+}

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Leaflet - Rotated marker with inidicator</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link  href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" rel="stylesheet" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"  integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+  <style>
+    .mymarker svg path { fill: black; }
+    .mymarker {
+      transition: transform 0.5s linear;
+    }
+    .indicator {
+      background-color: white;
+      border: 1px solid dodgerblue;
+      border-radius: 6px;
+      color: dodgerblue;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 2px 4px;
+      position: relative;
+      bottom: 35px;
+      left: 20px;
+      white-space: nowrap;
+      transition: transform 0.5s linear;
+    }
+    .leaflet-popup { 
+      margin-bottom: 47px;
+    }
+</style>
+</head>
+<body>
+  <div id="map-placeholder" style="height:400px"></div>
+
+  <script>
+    (function() {
+    // Save original method before overwriting it below.
+      const _setPosOriginal = L.Marker.prototype._setPos
+
+      L.Marker.addInitHook(function() {
+        const anchor = this.options.icon.options.iconAnchor
+        this.options.rotationOrigin = anchor ? `${anchor[0]}px ${anchor[1]}px` : 'center center'
+        // Ensure marker remains rotated during dragging.
+        this.on('drag', data => { this._rotate() })
+      })
+
+      L.Marker.include({
+        // _setPos is alled when update() is called, e.g. on setLatLng()
+        _setPos: function(pos) {
+          _setPosOriginal.call(this, pos)
+          if (this.options.rotation) this._rotate()
+        },
+        _rotate: function() {
+          this._icon.style[`${L.DomUtil.TRANSFORM}Origin`] = this.options.rotationOrigin
+          this._icon.style[L.DomUtil.TRANSFORM] += ` rotate(${this.options.rotation}deg)`
+        }
+      })
+    })()
+    
+    Math.radians = (degrees) => degrees * Math.PI / 180
+    
+    function calcHeading(point1, point2) {
+      const pnt1lat = Math.radians(point1.lat)
+      const pnt2lat = Math.radians(point2.lat)
+      const lngDiff = Math.radians(point2.lng - point1.lng)
+      const y = Math.sin(lngDiff) * Math.cos(pnt2lat)
+      const x = Math.cos(pnt1lat) * Math.sin(pnt2lat) - Math.sin(pnt1lat) * Math.cos(pnt2lat) * Math.cos(lngDiff)
+      let heading = Math.atan2(y, x) * 180.0 / Math.PI
+      // Convert to compass heading, 0..360, rather than -180..+180
+      if (heading < 0) heading += 360
+      return heading;
+    }
+
+    function markerOptions(size, heading) {
+      const iconOptions = {
+        iconSize  : [size, size],
+        iconAnchor: [size/2, size/2], 
+        className : 'mymarker',
+        html      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M 16 3 C 8.832031 3 3 8.832031 3 16 C 3 23.167969 8.832031 29 16 29 C 23.167969 29 29 23.167969 29 16 C 29 8.832031 23.167969 3 16 3 Z M 16 5 C 22.085938 5 27 9.914063 27 16 C 27 22.085938 22.085938 27 16 27 C 9.914063 27 5 22.085938 5 16 C 5 9.914063 9.914063 5 16 5 Z M 16 8.875 L 9.59375 15.28125 L 11 16.71875 L 15 12.71875 L 15 23 L 17 23 L 17 12.71875 L 21 16.71875 L 22.40625 15.28125 Z"/></svg>'
+      }
+      return {
+        //draggable: true,
+        icon: L.divIcon(iconOptions),
+        //rotation: heading
+      }
+    }
+	
+	
+    const center = [-37.8179, 144.936]
+    const heading = 253;
+    const myMap = L.map('map-placeholder').setView(center, 16)
+    const myMarker = L.marker(center, markerOptions(30, heading)).addTo(myMap)
+    myMarker
+      .bindPopup('Click on the map<br/>to point me there.<br/><br/>You can drag me too.')
+      .openPopup()
+      
+    myMap.addLayer(L.tileLayer(
+      'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}@2x.png',
+      { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contr.' }
+    ))
+    
+	/*
+    function updateIndicatorPos(marker, heading) {
+      const pos = marker._icon._leaflet_pos
+      const indicator = marker._icon.nextElementSibling
+      if (heading) indicator.innerHTML = `🧭 ${heading}°`
+      indicator.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+    }
+    
+    myMap.whenReady( _ => {
+      L.DomUtil.create('div', 'indicator', myMarker._icon.parentNode)
+      updateIndicatorPos(myMarker, heading)
+    })
+
+    myMarker.on('move', data => { updateIndicatorPos(myMarker) })
+    myMap.on('zoom',    data => { updateIndicatorPos(myMarker) })
+    
+    myMap.on('click', data => { 
+      myMarker.options.rotation = Math.round(calcHeading(myMarker.getLatLng(), data.latlng))
+      myMarker.update()
+      updateIndicatorPos(myMarker, myMarker.options.rotation)
+    })*/
+  </script>
+</body>
+</html>

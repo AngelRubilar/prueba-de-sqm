@@ -1,0 +1,36 @@
+[mysqld]
+sql_mode=""
+max_allowed_packet = 1073741824
+max_connect_errors = 100
+max_connections = 500
+open_files_limit = 40000
+performance_schema = 0
+thread_cache_size = 256
+interactive_timeout = 28800
+wait_timeout = 28800
+
+# Buffer settings
+join_buffer_size = 262144
+key_buffer_size = 134217728
+read_buffer_size = 131072
+read_rnd_buffer_size = 262144
+sort_buffer_size = 262144
+
+# InnoDB settings
+innodb_log_buffer_size = 16777216
+innodb_log_file_size = 50331648
+innodb_sort_buffer_size = 1048576
+innodb_buffer_pool_chunk_size = 134217728
+innodb_buffer_pool_instances = 4
+innodb_buffer_pool_size = 6G
+innodb_lock_wait_timeout = 300
+net_read_timeout = 600
+net_write_timeout = 600
+
+# Memory table settings
+max_heap_table_size = 16777216
+tmp_table_size = 16777216
+
+# Query Cache settings
+query_cache_size = 1073741824 # 1GB
+query_cache_type = 1
