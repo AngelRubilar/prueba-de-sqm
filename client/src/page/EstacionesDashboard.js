@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { pm10Stations, hasVariable } from '../config/stations';
-import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData } from '../services/api';
+import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData, fetchAveragesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -18,6 +18,7 @@ function EstacionesDashboard() {
   const [so2Data, setSo2Data] = useState([]);
   const [windData, setWindData] = useState([]);
   const [variablesData, setVariablesData] = useState([]);
+  const [averagesData, setAveragesData] = useState({});
   const [forecastData, setForecastData] = useState({
     'Huara': { forecast: [], real: [], range: [] },
     'Victoria': { forecast: [], real: [], range: [] },
@@ -30,19 +31,30 @@ function EstacionesDashboard() {
   const cargarDatosPrincipales = async () => {
     try {
       //console.log('Cargando datos principales...');
-      const [pm10, so2, viento, variables] = await Promise.all([
+      const [pm10, so2, viento, variables, averages] = await Promise.all([
         fetchPM10Data(),
         fetchSO2Data(),
         fetchVientoData(),
-        fetchVariablesData()
+        fetchVariablesData(),
+        fetchAveragesData()
       ]);
+      
+      console.log('🔍 DEBUG: Datos de promedios recibidos:', averages);
+      console.log('🔍 DEBUG: Estructura de averages:', {
+        success: averages.success,
+        hasData: !!averages.data,
+        dataKeys: averages.data ? Object.keys(averages.data) : 'No data',
+        sampleStation: averages.data ? Object.keys(averages.data)[0] : 'No stations',
+        sampleData: averages.data && Object.keys(averages.data)[0] ? averages.data[Object.keys(averages.data)[0]] : 'No sample data'
+      });
       
       setPm10Data(pm10);
       setSo2Data(so2);
       setWindData(viento);
       setVariablesData(variables);
+      setAveragesData(averages);
     } catch (error) {
-     // console.error('Error al cargar datos principales:', error);
+      console.error('Error al cargar datos principales:', error);
     }
   };
 
@@ -93,6 +105,29 @@ function EstacionesDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Función para obtener el promedio diario de SO2
+  const getPromedioSO2 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    console.log(`🔍 DEBUG: getPromedioSO2(${station}):`, stationAverages);
+    if (!stationAverages || !stationAverages.SO2) return null;
+    return parseFloat(stationAverages.SO2.valor); // Convertir string a número
+  };
+
+  // Función para obtener el promedio diario de PM2.5
+  const getPromedioPM25 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    if (!stationAverages || !stationAverages.PM2_5) return null;
+    return parseFloat(stationAverages.PM2_5.valor); // Convertir string a número
+  };
+
+  // Función para obtener el promedio diario de PM10
+  const getPromedioPM10 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    if (!stationAverages || !stationAverages.PM10) return null;
+    return parseFloat(stationAverages.PM10.valor); // Convertir string a número
+  };
+
+  // Función para obtener el último valor individual de SO2 (para compatibilidad)
   const getUltimoSO2 = (station) => {
     const datos = so2Data.filter(d => d.station_name === station);
     if (!datos.length) return null;
@@ -414,7 +449,7 @@ function EstacionesDashboard() {
           // Obtener valores de las variables adicionales
           const hr = getUltimaHR(cfg.station);
           const temperatura = getUltimaTemperatura(cfg.station);
-          const pm25 = getUltimaPM25(cfg.station);
+          const pm25 = getPromedioPM25(cfg.station); // Usar promedio diario
 
           // Mapeo correcto de clave de estación
           const stationKey = stationKeyMap[cfg.station] || cfg.title;
@@ -572,10 +607,10 @@ function EstacionesDashboard() {
                       minWidth: 200
                     }}>
                       <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                        SO₂ (μg/m³)
+                        SO₂ Promedio (μg/m³)
                       </div>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {so2 ?? 'Sin Datos'}
+                        {getPromedioSO2(cfg.station) ? getPromedioSO2(cfg.station).toFixed(2) : 'Sin Datos'}
                       </div>
                     </div>
                   )}
@@ -596,7 +631,7 @@ function EstacionesDashboard() {
                         💧 HR (%)
                       </div>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {hr ? hr.toFixed(1) : 'Sin Datos'}
+                        {hr ? hr.toFixed(2) : 'Sin Datos'}
                       </div>
                     </div>
                   )}
@@ -617,7 +652,7 @@ function EstacionesDashboard() {
                         🌡️ Temp (°C)
                       </div>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {temperatura ? temperatura.toFixed(1) : 'Sin Datos'}
+                        {temperatura ? temperatura.toFixed(2) : 'Sin Datos'}
                       </div>
                     </div>
                   )}
@@ -635,10 +670,31 @@ function EstacionesDashboard() {
                       minWidth: 200
                     }}>
                       <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                        🌫️ PM2.5 (μg/m³)
+                        🌫️ PM2.5 Promedio (μg/m³)
                       </div>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {pm25 ? pm25.toFixed(1) : 'Sin Datos'}
+                        {pm25 ? pm25.toFixed(2) : 'Sin Datos'}
+                      </div>
+                    </div>
+                  )}
+
+                  {hasVariable(cfg.station, 'PM10') && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                      color: 'white',
+                      padding: '12px 20px',
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      boxShadow: '0 4px 16px rgba(231, 76, 60, 0.3)',
+                      minWidth: 200
+                    }}>
+                      <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                        🌫️ PM10 Promedio (μg/m³)
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {getPromedioPM10(cfg.station) ? getPromedioPM10(cfg.station).toFixed(2) : 'Sin Datos'}
                       </div>
                     </div>
                   )}

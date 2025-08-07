@@ -3,6 +3,8 @@ const router = express.Router();
 const ctl = require('../controllers/measurementController');
 const reportController = require('../controllers/reportController');
 const forecastController = require('../controllers/forecastController');
+const AverageController = require('../controllers/averageController');
+const averageController = new AverageController();
 
 const {
   graphDataLimiter,
@@ -42,5 +44,27 @@ router.post('/forecast/force-update', forecastController.forceForecastUpdate);
 
 // Endpoint de debug para pronósticos (sin rate limit para facilitar debugging)
 router.get('/forecast/debug', forecastController.debugForecastData);
+
+// ===== ENDPOINTS DE PROMEDIOS =====
+
+// Obtener últimos promedios para todas las estaciones
+router.get('/promedios', graphDataLimiter, averageController.obtenerUltimosPromedios.bind(averageController));
+
+// Obtener promedios para una estación específica
+router.get('/promedios/estacion/:stationName', graphDataLimiter, averageController.obtenerPromediosEstacion.bind(averageController));
+
+// Obtener promedios históricos para una estación y variable
+router.get('/promedios/historico/:stationName/:variableName', graphDataLimiter, averageController.obtenerPromediosHistoricos.bind(averageController));
+
+// Obtener configuración de variables por estación
+router.get('/promedios/configuracion', graphDataLimiter, averageController.obtenerConfiguracion.bind(averageController));
+
+// Control del scheduler de promedios
+router.get('/promedios/scheduler/status', averageController.obtenerEstadoScheduler.bind(averageController));
+router.post('/promedios/scheduler/start', averageController.iniciarScheduler.bind(averageController));
+router.post('/promedios/scheduler/stop', averageController.detenerScheduler.bind(averageController));
+
+// Ejecutar cálculo manual de promedios
+router.post('/promedios/calcular', averageController.ejecutarCalculoManual.bind(averageController));
 
 module.exports = router;

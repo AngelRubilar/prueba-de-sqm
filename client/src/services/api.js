@@ -71,6 +71,25 @@ export function fetchVariablesData() {
     .then(res => res.data);
 }
 
+/**
+ * Obtiene datos de promedios diarios desde el backend
+ * @returns {Promise<Object>} Objeto con los promedios por estación y variable
+ */
+export function fetchAveragesData() {
+  return api.get('/promedios')
+    .then(res => res.data);
+}
+
+/**
+ * Obtiene promedios para una estación específica
+ * @param {string} stationName - Nombre de la estación
+ * @returns {Promise<Object>} Promedios de la estación
+ */
+export function fetchStationAverages(stationName) {
+  return api.get(`/promedios/estacion/${stationName}`)
+    .then(res => res.data);
+}
+
 export const fetchForecastData = async () => {
   try {
     //console.log('=== INICIANDO PETICIÓN DE PRONÓSTICO ===');

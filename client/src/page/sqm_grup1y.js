@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData } from '../services/api';
+import { fetchPM10Data, fetchSO2Data, fetchVientoData, fetchForecastData, fetchVariablesData, fetchAveragesData } from '../services/api';
 import AreaChart from '../components/AreaChart';
 import ForecastChart from '../components/ForecastChart';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -12,6 +12,7 @@ function SqmGrup1y() {
   const [so2Data, setSo2Data] = useState([]);
   const [windData, setWindData] = useState([]);
   const [variablesData, setVariablesData] = useState([]);
+  const [averagesData, setAveragesData] = useState({});
   const [forecastData, setForecastData] = useState({
     'Victoria': { forecast: [], real: [], range: [] },
     'Colonia Pintados': { forecast: [], real: [], range: [] },
@@ -23,17 +24,19 @@ function SqmGrup1y() {
   // Función para cargar datos de PM10, SO2 y Viento (cada 5 minutos)
   const cargarDatosPrincipales = async () => {
     try {
-      const [pm10, so2, viento, variables] = await Promise.all([
+      const [pm10, so2, viento, variables, averages] = await Promise.all([
         fetchPM10Data(),
         fetchSO2Data(),
         fetchVientoData(),
-        fetchVariablesData()
+        fetchVariablesData(),
+        fetchAveragesData()
       ]);
       
       setPm10Data(pm10);
       setSo2Data(so2);
       setWindData(viento);
       setVariablesData(variables);
+      setAveragesData(averages);
     } catch (error) {
       console.error('Error al cargar datos principales:', error);
     }
@@ -95,6 +98,28 @@ function SqmGrup1y() {
 
   const currentGroupStations = groups[currentGroup];
 
+  // Función para obtener el promedio diario de SO2
+  const getPromedioSO2 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    if (!stationAverages || !stationAverages.SO2) return null;
+    return parseFloat(stationAverages.SO2.valor); // Convertir string a número
+  };
+
+  // Función para obtener el promedio diario de PM2.5
+  const getPromedioPM25 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    if (!stationAverages || !stationAverages.PM2_5) return null;
+    return parseFloat(stationAverages.PM2_5.valor); // Convertir string a número
+  };
+
+  // Función para obtener el promedio diario de PM10
+  const getPromedioPM10 = (station) => {
+    const stationAverages = averagesData.data ? averagesData.data[station] : null;
+    if (!stationAverages || !stationAverages.PM10) return null;
+    return parseFloat(stationAverages.PM10.valor); // Convertir string a número
+  };
+
+  // Función para obtener el último valor individual de SO2 (para compatibilidad)
   const getUltimoSO2 = (station) => {
     const datos = so2Data.filter(d => d.station_name === station);
     if (!datos.length) return null;
@@ -371,11 +396,11 @@ function SqmGrup1y() {
       >
         {currentGroupStations.map(station => {
             const viento = getUltimoViento(station.station);
-            const so2 = getUltimoSO2(station.station);
+            const so2 = getPromedioSO2(station.station); // Usar promedio diario
             const showForecast = station.showForecast;
             const hr = getUltimaHR(station.station);
             const temperatura = getUltimaTemperatura(station.station);
-            const pm25 = getUltimaPM25(station.station);
+            const pm25 = getPromedioPM25(station.station); // Usar promedio diario
             const stationKey = stationKeyMap[station.station];
             const stationForecastData = getForecastDataForStation(stationKey);
             return (
@@ -523,10 +548,10 @@ function SqmGrup1y() {
                         minWidth: 200
                       }}>
                         <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                          SO₂ (μg/m³)
+                          SO₂ Promedio (μg/m³)
                         </div>
                         <div style={{ fontSize: 20, fontWeight: 700 }}>
-                          {so2 !== null && so2 !== undefined ? so2 : 'Sin Datos'}
+                          {so2 !== null && so2 !== undefined ? so2.toFixed(2) : 'Sin Datos'}
                         </div>
                       </div>
                     )}
@@ -546,7 +571,7 @@ function SqmGrup1y() {
                           💧 HR (%)
                         </div>
                         <div style={{ fontSize: 20, fontWeight: 700 }}>
-                          {hr !== null && hr !== undefined ? hr.toFixed(1) : 'Sin Datos'}
+                          {hr !== null && hr !== undefined ? hr.toFixed(2) : 'Sin Datos'}
                         </div>
                       </div>
                     )}
@@ -566,7 +591,7 @@ function SqmGrup1y() {
                           🌡️ Temp (°C)
                         </div>
                         <div style={{ fontSize: 20, fontWeight: 700 }}>
-                          {temperatura !== null && temperatura !== undefined ? temperatura.toFixed(1) : 'Sin Datos'}
+                          {temperatura !== null && temperatura !== undefined ? temperatura.toFixed(2) : 'Sin Datos'}
                         </div>
                       </div>
                     )}
@@ -583,10 +608,31 @@ function SqmGrup1y() {
                         minWidth: 200
                       }}>
                         <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                          🌫️ PM2.5 (μg/m³)
+                          🌫️ PM2.5 Promedio (μg/m³)
                         </div>
                         <div style={{ fontSize: 20, fontWeight: 700 }}>
-                          {pm25 !== null && pm25 !== undefined ? pm25.toFixed(1) : 'Sin Datos'}
+                          {pm25 !== null && pm25 !== undefined ? pm25.toFixed(2) : 'Sin Datos'}
+                        </div>
+                      </div>
+                    )}
+
+                    {hasVariable(station.station, 'PM10') && (
+                      <div style={{
+                        background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                        color: 'white',
+                        padding: '12px 20px',
+                        borderRadius: 12,
+                        textAlign: 'center',
+                        fontSize: 16,
+                        fontWeight: 600,
+                        boxShadow: '0 4px 16px rgba(231, 76, 60, 0.3)',
+                        minWidth: 200
+                      }}>
+                        <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                          🌫️ PM10 Promedio (μg/m³)
+                        </div>
+                        <div style={{ fontSize: 20, fontWeight: 700 }}>
+                          {getPromedioPM10(station.station) ? getPromedioPM10(station.station).toFixed(2) : 'Sin Datos'}
                         </div>
                       </div>
                     )}

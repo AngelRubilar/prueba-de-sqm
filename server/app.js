@@ -23,6 +23,7 @@ const mqttService = new MqttService();
 const apiRoutes = require('./routes/apiRoutes');
 
 const forecastScheduler = require('./services/forecastScheduler');
+const AverageScheduler = require('./services/averageScheduler');
 
 // Iniciamos el servidor express
 const app = express();
@@ -194,6 +195,41 @@ function programarReporteDiario() {
     }
 }
 
+// Función para sincronización nocturna AYT
+async function ejecutarSincronizacionNocturnaAyt() {
+  try {
+    console.log('🌙 Iniciando sincronización nocturna AYT programada');
+    const aytService = require('./services/aytService');
+    const resultados = await aytService.sincronizacionNocturna();
+    console.log('✅ Sincronización nocturna AYT completada:', resultados);
+  } catch (error) {
+    console.error('Error en sincronización nocturna AYT:', error.message);
+  }
+}
+
+// Función para programar la sincronización nocturna AYT
+function programarSincronizacionNocturnaAyt() {
+    const ahora = moment().tz('America/Santiago');
+    const horaObjetivo = moment().tz('America/Santiago').set({ hour: 23, minute: 31, second: 0 });
+    
+    // Si la hora actual es después de la hora objetivo, programar para mañana
+    if (ahora.isAfter(horaObjetivo)) {
+        horaObjetivo.add(1, 'day');
+    }
+    
+    const tiempoHastaSincronizacion = horaObjetivo.diff(ahora);
+    
+    console.log(`🌙 Próxima sincronización nocturna AYT programada para: ${horaObjetivo.format('YYYY-MM-DD HH:mm:ss')}`);
+    
+    // Programar para ejecutar todos los días a las 23:31
+    setInterval(ejecutarSincronizacionNocturnaAyt, 24 * 60 * 60 * 1000);
+    
+    // Si el tiempo hasta la sincronización es menor a 24 horas, ejecutar inmediatamente
+    if (tiempoHastaSincronizacion < 24 * 60 * 60 * 1000) {
+        setTimeout(ejecutarSincronizacionNocturnaAyt, tiempoHastaSincronizacion);
+    }
+}
+
 // Configuración para servir archivos estáticos en desarrollo
 if (process.env.NODE_ENV === 'development') {
   console.log('Configurando rutas para desarrollo...');
@@ -240,20 +276,33 @@ app.listen(PORT, () => {
   // Iniciar programación de reportes diarios
   programarReporteDiario();
 
+  // Iniciar programación de sincronización nocturna AYT
+  programarSincronizacionNocturnaAyt();
+
   // Iniciar el programador de pronóstico
   forecastScheduler.start();
+
+  // Iniciar el scheduler de promedios
+  const averageScheduler = new AverageScheduler();
+  averageScheduler.start();
 });
 
 // Manejo de señales de terminación
 process.on('SIGTERM', () => {
   console.log('Recibida señal SIGTERM. Cerrando servidor...');
   forecastScheduler.stop();
+  if (averageScheduler) {
+    averageScheduler.stop();
+  }
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('Recibida señal SIGINT. Cerrando servidor...');
   forecastScheduler.stop();
+  if (averageScheduler) {
+    averageScheduler.stop();
+  }
   process.exit(0);
 });
 
