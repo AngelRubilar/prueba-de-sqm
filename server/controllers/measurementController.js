@@ -54,10 +54,20 @@ async function getHospitalWindData(req, res, next) {
   }
 }
 
+async function getHospital24hAverage(req, res, next) {
+  try {
+    const data = await service.fetchHospital24hAverage();
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   getPM10Data,
   getWindData,
   getSO2Data,
   getVariablesData,
-  getHospitalWindData
+  getHospitalWindData,
+  getHospital24hAverage
 };

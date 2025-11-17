@@ -38,10 +38,19 @@ async function fetchHospitalWindData() {
   return repo.getHospitalWindData();
 }
 
+/**
+ * Obtiene el promedio de 24 horas para la estación Hospital (E5)
+ * Calcula promedios por hora de las últimas 24 horas y luego promedia esos 24 promedios
+ */
+async function fetchHospital24hAverage() {
+  return repo.getHospital24hAverage();
+}
+
 module.exports = {
   fetchPM10,
   fetchWindData,
   fetchSO2,
   fetchVariables,
   fetchHospitalWindData,
+  fetchHospital24hAverage,
 };

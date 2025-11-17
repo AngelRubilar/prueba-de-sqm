@@ -423,10 +423,122 @@ async function getHospitalWindDataFromDatabase() {
     }
 }
 
+/**
+ * Obtiene el promedio de 24 horas para la estación Hospital (E5)
+ * Calcula promedios por hora de las últimas 24 horas y luego promedia esos 24 promedios
+ */
+async function getHospital24hAverage() {
+    try {
+        console.log('[Hospital 24h] Iniciando cálculo de promedio de 24 horas...');
+        
+        const sql = `
+            WITH hourly_averages AS (
+                SELECT 
+                    DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00') as hour_start,
+                    variable_name,
+                    AVG(valor) as avg_value,
+                    COUNT(*) as record_count
+                FROM datos 
+                WHERE 
+                    station_name = 'E5'
+                    AND variable_name IN ('PM10', 'VV', 'DV')
+                    AND timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                    AND valor IS NOT NULL
+                    AND valor > 0
+                GROUP BY 
+                    DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00'),
+                    variable_name
+            ),
+            hourly_combined AS (
+                SELECT 
+                    hour_start,
+                    MAX(CASE WHEN variable_name = 'PM10' THEN avg_value END) as pm10_avg,
+                    MAX(CASE WHEN variable_name = 'VV' THEN avg_value END) as vv_avg,
+                    MAX(CASE WHEN variable_name = 'DV' THEN avg_value END) as dv_avg,
+                    COUNT(DISTINCT variable_name) as variables_count
+                FROM hourly_averages
+                GROUP BY hour_start
+            ),
+            final_averages AS (
+                SELECT 
+                    AVG(pm10_avg) as pm10_24h_avg,
+                    AVG(vv_avg) as vv_24h_avg,
+                    AVG(dv_avg) as dv_24h_avg,
+                    COUNT(*) as hours_with_data,
+                    MIN(hour_start) as first_hour,
+                    MAX(hour_start) as last_hour
+                FROM hourly_combined
+                WHERE variables_count > 0
+            )
+            SELECT 
+                pm10_24h_avg,
+                vv_24h_avg,
+                dv_24h_avg,
+                hours_with_data,
+                first_hour,
+                last_hour,
+                NOW() as calculation_time
+            FROM final_averages
+        `;
+
+        const [rows] = await readerPool.query(sql);
+        
+        if (rows.length === 0) {
+            console.log('[Hospital 24h] No se encontraron datos para calcular el promedio');
+            return {
+                success: false,
+                message: 'No hay datos suficientes para calcular el promedio de 24 horas',
+                data: null
+            };
+        }
+
+        const result = rows[0];
+        
+        console.log('[Hospital 24h] Cálculo completado:', {
+            pm10_24h_avg: result.pm10_24h_avg,
+            vv_24h_avg: result.vv_24h_avg,
+            dv_24h_avg: result.dv_24h_avg,
+            hours_with_data: result.hours_with_data,
+            first_hour: result.first_hour,
+            last_hour: result.last_hour
+        });
+
+        return {
+            success: true,
+            data: {
+                pm10: {
+                    valor: result.pm10_24h_avg ? parseFloat(result.pm10_24h_avg).toFixed(4) : null,
+                    horas_con_datos: result.hours_with_data,
+                    primera_hora: result.first_hour,
+                    ultima_hora: result.last_hour
+                },
+                viento: {
+                    velocidad: result.vv_24h_avg ? parseFloat(result.vv_24h_avg).toFixed(4) : null,
+                    direccion: result.dv_24h_avg ? parseFloat(result.dv_24h_avg).toFixed(4) : null,
+                    horas_con_datos: result.hours_with_data,
+                    primera_hora: result.first_hour,
+                    ultima_hora: result.last_hour
+                },
+                calculado_en: result.calculation_time
+            }
+        };
+
+    } catch (error) {
+        console.error('[Hospital 24h] Error al calcular promedio de 24 horas:', error);
+        return {
+            success: false,
+            message: 'Error al calcular el promedio de 24 horas',
+            error: error.message,
+            data: null
+        };
+    }
+}
+
 module.exports = {
     getMeasurementsByVariable,
     getWindData,
     getMultipleVariablesData,
     getPM10Data,
-    getHospitalWindData
+    getHospitalWindData,
+    getHospital24hAverage
 };

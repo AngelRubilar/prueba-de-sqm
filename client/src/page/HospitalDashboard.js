@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import StockAreaChart from '../components/StockAreaChart';
 import WindRosePolarChart from '../components/WindRosePolarChart';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { fetchPM10Data, fetchHospitalWindData } from '../services/api';
+import { fetchPM10Data, fetchHospitalWindData, fetchHospital24hAverage } from '../services/api';
 
 // Nombre exacto de la estación Hospital en los datos
 const HOSPITAL_STATION = 'E5';
@@ -11,19 +11,23 @@ function HospitalDashboard() {
   const [pm10Data, setPm10Data] = useState([]);
   const [windData, setWindData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hospital24hData, setHospital24hData] = useState(null);
 
-  // Función para cargar datos de PM10 y viento
+  // Función para cargar datos de PM10, viento y promedio 24h
   const cargarDatos = async () => {
     setLoading(true);
     try {
       console.log('🔄 Cargando datos de Hospital...');
-      const [pm10, viento] = await Promise.all([
+      const [pm10, viento, promedio24h] = await Promise.all([
         fetchPM10Data(),
-        fetchHospitalWindData()
+        fetchHospitalWindData(),
+        fetchHospital24hAverage()
       ]);
       setPm10Data(pm10.filter(d => d.station_name === HOSPITAL_STATION));
       setWindData(viento);
+      setHospital24hData(promedio24h);
       console.log('✅ Datos cargados correctamente');
+      console.log('📊 Promedio 24h:', promedio24h);
     } catch (error) {
       console.error('❌ Error al cargar datos:', error);
     } finally {
@@ -224,6 +228,149 @@ function HospitalDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Sección de Promedios de 24 Horas */}
+      {hospital24hData && hospital24hData.success && (
+        <div style={{
+          background: 'rgba(255,255,255,0.97)',
+          borderRadius: 18,
+          boxShadow: '0 8px 32px rgba(44,62,80,0.10)',
+          padding: 24,
+          margin: '0 20px 20px 20px',
+          maxWidth: 1400,
+          marginLeft: 'auto',
+          marginRight: 'auto'
+        }}>
+          <h2 style={{
+            fontSize: 20,
+            fontWeight: 600,
+            color: '#2c3e50',
+            marginBottom: 16,
+            textAlign: 'center',
+            fontFamily: 'Roboto, sans-serif'
+          }}>
+            📊 Promedios de 24 Horas
+          </h2>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 20,
+            alignItems: 'center'
+          }}>
+            {/* PM10 Promedio */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: 12,
+              padding: 20,
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+            }}>
+              <h3 style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 8,
+                opacity: 0.9
+              }}>
+                PM10 Promedio 24h
+              </h3>
+              <div style={{
+                fontSize: 28,
+                fontWeight: 700,
+                marginBottom: 4
+              }}>
+                {hospital24hData.data.pm10.valor ? `${hospital24hData.data.pm10.valor} μg/m³` : 'Sin Datos'}
+              </div>
+              <div style={{
+                fontSize: 12,
+                opacity: 0.8
+              }}>
+                {hospital24hData.data.pm10.horas_con_datos} horas con datos
+              </div>
+            </div>
+
+            {/* Viento Promedio */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: 12,
+              padding: 20,
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(240, 147, 251, 0.3)'
+            }}>
+              <h3 style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 8,
+                opacity: 0.9
+              }}>
+                Viento Promedio 24h
+              </h3>
+              <div style={{
+                fontSize: 20,
+                fontWeight: 700,
+                marginBottom: 4
+              }}>
+                {hospital24hData.data.viento.velocidad ? `${hospital24hData.data.viento.velocidad} m/s` : 'Sin Datos'}
+              </div>
+              <div style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 4
+              }}>
+                {hospital24hData.data.viento.direccion ? `${hospital24hData.data.viento.direccion}°` : 'Sin Datos'}
+              </div>
+              <div style={{
+                fontSize: 12,
+                opacity: 0.8
+              }}>
+                {hospital24hData.data.viento.horas_con_datos} horas con datos
+              </div>
+            </div>
+
+            {/* Información del Cálculo */}
+            <div style={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              borderRadius: 12,
+              padding: 20,
+              color: 'white',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)'
+            }}>
+              <h3 style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 8,
+                opacity: 0.9
+              }}>
+                Información del Cálculo
+              </h3>
+              <div style={{
+                fontSize: 14,
+                marginBottom: 4
+              }}>
+                <strong>Período:</strong> {hospital24hData.data.pm10.primera_hora ? 
+                  new Date(hospital24hData.data.pm10.primera_hora).toLocaleString() : 'N/A'}
+              </div>
+              <div style={{
+                fontSize: 14,
+                marginBottom: 4
+              }}>
+                <strong>Hasta:</strong> {hospital24hData.data.pm10.ultima_hora ? 
+                  new Date(hospital24hData.data.pm10.ultima_hora).toLocaleString() : 'N/A'}
+              </div>
+              <div style={{
+                fontSize: 12,
+                opacity: 0.8,
+                marginTop: 8
+              }}>
+                Calculado: {new Date(hospital24hData.data.calculado_en).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{
         display: 'flex',

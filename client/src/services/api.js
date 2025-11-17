@@ -90,6 +90,15 @@ export function fetchStationAverages(stationName) {
     .then(res => res.data);
 }
 
+/**
+ * Obtiene el promedio de 24 horas para la estación Hospital (E5)
+ * @returns {Promise<Object>} Promedio de 24 horas del Hospital
+ */
+export function fetchHospital24hAverage() {
+  return api.get('/promedios-hospital-24h')
+    .then(res => res.data);
+}
+
 export const fetchForecastData = async () => {
   try {
     //console.log('=== INICIANDO PETICIÓN DE PRONÓSTICO ===');

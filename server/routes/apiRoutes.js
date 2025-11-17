@@ -67,4 +67,9 @@ router.post('/promedios/scheduler/stop', averageController.detenerScheduler.bind
 // Ejecutar cálculo manual de promedios
 router.post('/promedios/calcular', averageController.ejecutarCalculoManual.bind(averageController));
 
+// ===== ENDPOINT ESPECÍFICO PARA HOSPITAL 24H =====
+
+// Obtener promedio de 24 horas para la estación Hospital (E5)
+router.get('/promedios-hospital-24h', graphDataLimiter, ctl.getHospital24hAverage);
+
 module.exports = router;
