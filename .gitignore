@@ -40,3 +40,8 @@ store.json
 # Reportes y documentación temporal (descomentar si no quieres versionarlos)
 # SECURITY_AUDIT_REPORT.md
 # *_AUDIT_*.md
+
+# Archivos de Claude - No commitear configuraciones de IA
+.clauderc
+claude.md
+.clinerules
