@@ -21,6 +21,7 @@ const mqttService = new MqttService();
 
 // Rutas Api Rest
 const apiRoutes = require('./routes/apiRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const forecastScheduler = require('./services/forecastScheduler');
 const AverageScheduler = require('./services/averageScheduler');
@@ -70,6 +71,11 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '10mb' }));
+
+// Rutas de autenticación (sin protección)
+app.use('/auth', authRoutes);
+
+// Rutas de API (protegidas con JWT - se configurará progresivamente)
 app.use('/api', apiRoutes);
 
 // Función para ejecutar Serpram
