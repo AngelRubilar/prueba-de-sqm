@@ -14,9 +14,9 @@ class SerpramService {
     };
   }
 
-  async consultarAPI(dispositivo) {
+  async consultarAPI(dispositivo, timestampDesde = null) {
     try {
-      const { estampaTiempoInicial, estampaTiempoFinal } = this.obtenerMarcasDeTiempo();
+      const { estampaTiempoInicial, estampaTiempoFinal } = this.obtenerMarcasDeTiempo(timestampDesde);
       
       // Obtengo token dinámico de authService
       const token = await authService.getToken();
@@ -98,13 +98,23 @@ class SerpramService {
     return datosArray;
   }
 
-  obtenerMarcasDeTiempo() {
+  obtenerMarcasDeTiempo(timestampDesde = null) {
     const ahora = moment().tz('America/Santiago');
-    const haceUnMinuto = ahora.clone().subtract(5, 'minutes');
+    
+    // La API de Serpram tiene una hora menos que Chile, así que SIEMPRE consultamos con hora actual - 1 hora
+    const horaApi = ahora.clone().subtract(1, 'hour');
+    
+    // Siempre usamos un rango de 15 minutos desde la hora ajustada de la API
+    const estampaTiempoInicial = horaApi.clone().subtract(15, 'minutes').format('YYYY-MM-DDTHH:mm:ss');
+    const estampaTiempoFinal = horaApi.format('YYYY-MM-DDTHH:mm:ss');
+    
+    console.log(`🕐 Consultando Serpram desde: ${estampaTiempoInicial} hasta: ${estampaTiempoFinal}`);
+    console.log(`📅 Hora Chile actual: ${ahora.format('YYYY-MM-DD HH:mm:ss')} | Hora API ajustada: ${horaApi.format('YYYY-MM-DD HH:mm:ss')}`);
+    console.log(`ℹ️  API consulta 1 hora antes que Chile para encontrar datos disponibles`);
     
     return {
-      estampaTiempoInicial: haceUnMinuto.format('YYYY-MM-DDTHH:mm:ss'),
-      estampaTiempoFinal: ahora.format('YYYY-MM-DDTHH:mm:ss')
+      estampaTiempoInicial,
+      estampaTiempoFinal
     };
   }
 }

@@ -15,7 +15,7 @@ class SerpramController {
       for (const dispositivo of serpramService.dispositivos) {
         try {
           console.log(`Procesando dispositivo Serpram: ${dispositivo}`);
-          const datosArray = await serpramService.consultarAPI(dispositivo);
+          const datosArray = await serpramService.consultarAPI(dispositivo, since);
 
           // Verificar que datosArray sea un array válido
           if (!Array.isArray(datosArray) || datosArray.length === 0) {

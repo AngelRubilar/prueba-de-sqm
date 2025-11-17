@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const moment = require('moment');
+const moment = require('moment-timezone');
 
 const STORE_PATH = path.resolve(__dirname, '../store.json');
 
@@ -10,7 +10,7 @@ function cargarTimestampSerpram() {
     return data.lastTimestampSerpram;
   } catch (e) {
     // Si el store no existe o está corrupto, pedimos los últimos 15 minutos
-    return moment().subtract(15, 'minutes').toISOString();
+    return moment().tz('America/Santiago').subtract(15, 'minutes').toISOString();
   }
 }
 
