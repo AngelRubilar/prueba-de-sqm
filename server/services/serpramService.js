@@ -9,9 +9,14 @@ class SerpramService {
   constructor() {
     this.dispositivos = ["Mejillones", "Sierra Gorda", "SQM Baquedano", "Maria Elena"];
     this.config = {
-      baseURL: 'https://api.serpram.cl/air_ws/v1/api',
-      token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNS0wNC0yOCAxMTozNDoxNiIsInVzZXJfaWQiOjMxLCJkYXRhIjoxMzU3MDAwMDAwfQ.Qyl5Jbfrypav9zLE6wchfApXom6DUy8e0E-pyVkq93c'
+      baseURL: process.env.SERPRAM_API_URL || 'https://api.serpram.cl/air_ws/v1/api',
+      token: process.env.SERPRAM_TOKEN
     };
+
+    // Validar que el token esté configurado
+    if (!this.config.token) {
+      throw new Error('SERPRAM_TOKEN no está configurado en las variables de entorno');
+    }
   }
 
   async consultarAPI(dispositivo, timestampDesde = null) {
