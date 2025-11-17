@@ -50,23 +50,87 @@ const limiter = rateLimit({
 app.use(requestLogger);
 app.use(limiter);
 
-// Debug: mostrar FRONTEND_URL para verificar configuración
-console.log('>>> FRONTEND_URL =', process.env.FRONTEND_URL);
+// Configuración de CORS según entorno
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const corsEnabled = process.env.ENABLE_CORS !== 'false'; // Por defecto habilitado
 
-// // Configurar CORS para desarrollo
-// app.use(cors({
-//   origin: true, // Más permisivo en desarrollo
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
+// Configurar origins permitidos
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
 
-// Middleware de seguridad (mantenido pero con headers más permisivos para desarrollo)
+console.log('🌐 CORS:', corsEnabled ? 'Habilitado' : 'Deshabilitado (monorepo mode)');
+console.log('🔧 Modo:', isDevelopment ? 'Desarrollo' : 'Producción');
+if (corsEnabled) {
+  console.log('📋 Origins permitidos:', allowedOrigins);
+}
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Si CORS está deshabilitado (modo monorepo), permitir todo
+    if (!corsEnabled) {
+      return callback(null, true);
+    }
+
+    // Permitir requests sin origin (Postman, curl, mismo servidor en monorepo)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Verificar si el origin está en la lista permitida
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS bloqueó origin no permitido: ${origin}`);
+      callback(new Error('Origin no permitido por CORS'), false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 horas de cache para preflight
+};
+
+app.use(cors(corsOptions));
+
+// Headers de seguridad adicionales
 app.use((req, res, next) => {
+  // Prevenir MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  //res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-Frame-Options', 'ALLOW-FROM http://localhost:3000');
+
+  // Protección contra clickjacking
+  if (isDevelopment) {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  } else {
+    res.setHeader('X-Frame-Options', 'DENY');
+  }
+
+  // Protección XSS (aunque moderna browsers no lo necesitan)
   res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // Política de referrer
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Content Security Policy (básico)
+  if (!isDevelopment) {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "frame-ancestors 'none'"
+    ].join('; ');
+    res.setHeader('Content-Security-Policy', csp);
+  }
+
+  // HSTS (solo en producción con HTTPS)
+  if (!isDevelopment && req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
   next();
 });
 
