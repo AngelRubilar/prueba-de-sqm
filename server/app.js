@@ -22,9 +22,16 @@ const mqttService = new MqttService();
 // Rutas Api Rest
 const apiRoutes = require('./routes/apiRoutes');
 const authRoutes = require('./routes/authRoutes');
+const healthRoutes = require('./routes/healthRoutes');
+const queueRoutes = require('./routes/queueRoutes');
+const metricsRoutes = require('./routes/metricsRoutes');
 
 const forecastScheduler = require('./services/forecastScheduler');
 const AverageScheduler = require('./services/averageScheduler');
+
+// Importar middleware de métricas
+const { metricsMiddleware } = require('./utils/metrics');
+const metricsCollector = require('./services/metricsCollector');
 
 // Iniciamos el servidor express
 const app = express();
@@ -48,6 +55,7 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(requestLogger);
+app.use(metricsMiddleware()); // Colectar métricas HTTP
 app.use(limiter);
 
 // Configuración de CORS según entorno
@@ -136,11 +144,20 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' }));
 
+// Rutas de métricas Prometheus (sin autenticación para scraping)
+app.use('/metrics', metricsRoutes);
+
+// Rutas de Health Check (sin autenticación para facilitar monitoreo)
+app.use('/health', healthRoutes);
+
 // Rutas de autenticación (sin protección)
 app.use('/auth', authRoutes);
 
 // Rutas de API (protegidas con JWT - se configurará progresivamente)
 app.use('/api', apiRoutes);
+
+// Rutas de gestión de colas (con autenticación)
+app.use('/api/queues', queueRoutes);
 
 // Función para ejecutar Serpram
 async function ejecutarSerpram() {
@@ -333,16 +350,19 @@ app.listen(PORT, () => {
   console.log(`Servidor iniciado en puerto ${PORT}`);
   console.log('Hora Chile:', formatearFechaChile());
   console.log('Ambiente: Desarrollo');
-  
-   
+
+  // Iniciar colector de métricas
+  metricsCollector.start();
+  console.log('Colector de métricas iniciado');
+
   // Ejecutar inmediatamente las consultas iniciales
   ejecutarEsinfa();
   ejecutarTodasLasConsultas();
-  
+
   // Configurar intervalos de consulta
   setInterval(ejecutarEsinfa, 300000); // 5 minutos
   setInterval(ejecutarTodasLasConsultas, 60000); // 1 minuto
-  
+
   // Iniciar programación de reportes diarios
   programarReporteDiario();
 
@@ -360,6 +380,7 @@ app.listen(PORT, () => {
 // Manejo de señales de terminación
 process.on('SIGTERM', () => {
   console.log('Recibida señal SIGTERM. Cerrando servidor...');
+  metricsCollector.stop();
   forecastScheduler.stop();
   if (averageScheduler) {
     averageScheduler.stop();
@@ -369,6 +390,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('Recibida señal SIGINT. Cerrando servidor...');
+  metricsCollector.stop();
   forecastScheduler.stop();
   if (averageScheduler) {
     averageScheduler.stop();

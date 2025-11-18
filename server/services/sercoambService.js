@@ -2,9 +2,34 @@ const axios = require('axios');
 const moment = require('moment-timezone');
 const nombreVariables = require('../config/nombreVariables');
 const { sercoambErrorHandler } = require('../errorHandlers');
+const { createApiCircuitBreaker } = require('../utils/circuitBreaker');
+const logger = require('../config/logger');
 
 class SercoambService {
     constructor() {
+        // Crear Circuit Breakers para ambas estaciones
+        this.circuitBreakerTamentica = createApiCircuitBreaker(
+            'SERCOAMB-Tamentica',
+            this._makeApiRequestTamentica.bind(this),
+            {
+                timeout: 15000,
+                errorThresholdPercentage: 50,
+                resetTimeout: 60000
+            }
+        );
+
+        this.circuitBreakerVictoria = createApiCircuitBreaker(
+            'SERCOAMB-Victoria',
+            this._makeApiRequestVictoria.bind(this),
+            {
+                timeout: 15000,
+                errorThresholdPercentage: 50,
+                resetTimeout: 60000
+            }
+        );
+
+        logger.info('SercoambService inicializado con Circuit Breakers para Tamentica y Victoria');
+
         this.estaciones = {
             tamentica: {
                 terminalID: "02054888SKY54C5",
@@ -28,30 +53,38 @@ class SercoambService {
         };
     }
 
+    /**
+     * Método privado que realiza la llamada real a la API Tamentica
+     * Protegido por Circuit Breaker
+     */
+    async _makeApiRequestTamentica(config) {
+        const response = await axios.request(config);
+
+        // Usar el errorHandler para manejar la respuesta
+        sercoambErrorHandler.handleError('Tamentica', response);
+
+        return response.data;
+    }
+
+    /**
+     * Consultar API Tamentica con Circuit Breaker
+     */
     async consultarAPITamentica() {
         try {
             const timestampInicio = moment().subtract(10, 'hours').unix();
-            
-            // Verificar que tenemos los datos de configuración
-            /* console.log('=== CONFIGURACIÓN TAMENTICA ===');
-            console.log('Credenciales disponibles:', {
-                terminalID: this.estaciones.tamentica.terminalID,
-                usuario: this.estaciones.tamentica.credentials.usuario,
-                pass: this.estaciones.tamentica.credentials.pass
-            }); */
-    
+
             // Verificar que las credenciales existen
-            if (!this.estaciones.tamentica.terminalID || 
-                !this.estaciones.tamentica.credentials.usuario || 
+            if (!this.estaciones.tamentica.terminalID ||
+                !this.estaciones.tamentica.credentials.usuario ||
                 !this.estaciones.tamentica.credentials.pass) {
                 throw new Error('Faltan credenciales de configuración para Tamentica');
             }
-    
+
             let config = {
                 method: 'post',
                 maxBodyLength: Infinity,
                 url: this.estaciones.tamentica.url,
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
                 data: JSON.stringify({
@@ -61,36 +94,27 @@ class SercoambService {
                     pass: this.estaciones.tamentica.credentials.pass
                 })
             };
-    
-            /* console.log('=== CONSULTA API TAMENTICA ===');
-            console.log('Configuración de la petición:', {
-                url: config.url,
-                terminalID: config.data.terminalID,
-                timestampInicio: config.data.timeStampInicio,
-                usuario: config.data.usuario
-            });
-     */
-            const response = await axios.request(config);
-            
-            //console.log('Respuesta completa de la API:', JSON.stringify(response.data, null, 2));
-            
-            // Usar el errorHandler para manejar la respuesta
-            sercoambErrorHandler.handleError('Tamentica', response);
-    
-            const filteredData = this.filterDataTamentica(response.data);
-            //console.log('Datos filtrados:', JSON.stringify(filteredData, null, 2));
-    
+
+            // Usar Circuit Breaker para proteger la llamada
+            const data = await this.circuitBreakerTamentica.fire(config);
+
+            // Si el Circuit Breaker devolvió fallback
+            if (data?.fallback) {
+                logger.warn(`SERCOAMB Tamentica API no disponible, usando fallback`);
+                return [];
+            }
+
+            const filteredData = this.filterDataTamentica(data);
             const transformedData = this.transformarDatosTamentica(filteredData);
-            //console.log('Datos transformados:', JSON.stringify(transformedData, null, 2));
-    
+
             return transformedData;
         } catch (error) {
-           /*  console.error('Error en consulta API Tamentica:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-                config: error.config?.data // Mostrar los datos que se enviaron
-            }); */
+            // Si el circuito está abierto, retornar array vacío
+            if (error.message && error.message.includes('Breaker is open')) {
+                logger.warn(`Circuit Breaker abierto para SERCOAMB Tamentica, retornando datos vacíos`);
+                return [];
+            }
+
             // Usar el errorHandler para manejar el error
             sercoambErrorHandler.handleError('Tamentica', null, error);
             return [];
@@ -186,6 +210,22 @@ class SercoambService {
         return datosValidos;
     }
 
+    /**
+     * Método privado que realiza la llamada real a la API Victoria
+     * Protegido por Circuit Breaker
+     */
+    async _makeApiRequestVictoria(config) {
+        const response = await axios.request(config);
+
+        // Usar el errorHandler para manejar la respuesta
+        sercoambErrorHandler.handleError('Victoria', response);
+
+        return response.data;
+    }
+
+    /**
+     * Consultar API Victoria con Circuit Breaker
+     */
     async consultarAPIVictoria() {
         try {
             const Fec_Desde = moment().subtract(1, 'days').format('DD-MM-YYYY');
@@ -195,7 +235,7 @@ class SercoambService {
                 method: 'post',
                 maxBodyLength: Infinity,
                 url: this.estaciones.victoria.url,
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json'
                 },
                 data: {
@@ -206,17 +246,56 @@ class SercoambService {
                 }
             };
 
-            const response = await axios.request(config);
-            
-            // Usar el errorHandler para manejar la respuesta
-            sercoambErrorHandler.handleError('Victoria', response);
+            // Usar Circuit Breaker para proteger la llamada
+            const data = await this.circuitBreakerVictoria.fire(config);
 
-            return this.transformarDatosVictoria(response.data.data.Data);
+            // Si el Circuit Breaker devolvió fallback
+            if (data?.fallback) {
+                logger.warn(`SERCOAMB Victoria API no disponible, usando fallback`);
+                return [];
+            }
+
+            return this.transformarDatosVictoria(data.data.Data);
         } catch (error) {
+            // Si el circuito está abierto, retornar array vacío
+            if (error.message && error.message.includes('Breaker is open')) {
+                logger.warn(`Circuit Breaker abierto para SERCOAMB Victoria, retornando datos vacíos`);
+                return [];
+            }
+
             // Usar el errorHandler para manejar el error
             sercoambErrorHandler.handleError('Victoria', null, error);
             return [];
         }
+    }
+
+    /**
+     * Obtener estadísticas de los Circuit Breakers
+     */
+    getCircuitBreakerStats() {
+        const statsTamentica = this.circuitBreakerTamentica.stats;
+        const statsVictoria = this.circuitBreakerVictoria.stats;
+
+        return {
+            tamentica: {
+                name: 'SERCOAMB-Tamentica',
+                state: this.circuitBreakerTamentica.opened ? 'OPEN' : (this.circuitBreakerTamentica.halfOpen ? 'HALF_OPEN' : 'CLOSED'),
+                fires: statsTamentica.fires,
+                successes: statsTamentica.successes,
+                failures: statsTamentica.failures,
+                rejects: statsTamentica.rejects,
+                timeouts: statsTamentica.timeouts
+            },
+            victoria: {
+                name: 'SERCOAMB-Victoria',
+                state: this.circuitBreakerVictoria.opened ? 'OPEN' : (this.circuitBreakerVictoria.halfOpen ? 'HALF_OPEN' : 'CLOSED'),
+                fires: statsVictoria.fires,
+                successes: statsVictoria.successes,
+                failures: statsVictoria.failures,
+                rejects: statsVictoria.rejects,
+                timeouts: statsVictoria.timeouts
+            }
+        };
     }
 
     transformarDatosVictoria(dataArray) {

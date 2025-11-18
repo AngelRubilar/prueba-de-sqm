@@ -4,10 +4,25 @@ const aytRepository = require('../repositories/aytRepository');
 const nombreVariables = require('../config/nombreVariables');
 const aytAuthService = require('./aytAuthService');
 const { aytErrorHandler } = require('../errorHandlers');
+const { createApiCircuitBreaker } = require('../utils/circuitBreaker');
+const logger = require('../config/logger');
 
 class AytService {
     constructor() {
         this.isSyncRunning = false; // Flag para evitar ejecuciones simultáneas
+
+        // Crear Circuit Breaker para la API AYT
+        this.circuitBreaker = createApiCircuitBreaker(
+            'AYT',
+            this._makeApiRequest.bind(this),
+            {
+                timeout: 15000, // 15 segundos
+                errorThresholdPercentage: 50,
+                resetTimeout: 45000 // 45 segundos (menor que SERPRAM porque consulta cada 1 min)
+            }
+        );
+
+        logger.info('AytService inicializado con Circuit Breaker');
         this.tagsE6 = [
             'VELOCIDAD_DEL_VIENTO_M/S_HUARA_MIN',
             'DIRECCION_DEL_VIENTO_HUARA_MIN',
@@ -59,6 +74,25 @@ class AytService {
         return 'Unknown';
     }
 
+    /**
+     * Método privado que realiza la llamada real a la API AYT
+     * Protegido por Circuit Breaker
+     */
+    async _makeApiRequest(tag, fechaDesde, fechaHasta, config) {
+        let response = await axios.request(config);
+        const datos = response.data;
+
+        const station = this.getStationFromTag(tag);
+        console.log(`✅ AYT API Response - ${tag}:`);
+        console.log(`   Status: ${response.status}`);
+        console.log(`   Data length: ${datos.length}`);
+
+        // Usar el errorHandler para manejar la respuesta
+        aytErrorHandler.handleError(station, response);
+
+        return datos;
+    }
+
     // MODIFICAR el método obtenerDatos existente para que sea reutilizable
     async obtenerDatos(tag, fechaDesde = null, fechaHasta = null, soloUltimo = true) {
         const station = this.getStationFromTag(tag);
@@ -95,20 +129,26 @@ class AytService {
         };
 
         try {
-            let response = await axios.request(config);
-            const datos = response.data;
-            console.log(`✅ AYT API Response - ${tag}:`);
-            console.log(`   Status: ${response.status}`);
-            console.log(`   Data length: ${datos.length}`);
-            
-            // Usar el errorHandler para manejar la respuesta
-            aytErrorHandler.handleError(station, response);
+            // Usar Circuit Breaker para proteger la llamada
+            const datos = await this.circuitBreaker.fire(tag, fechaDesde, fechaHasta, config);
+
+            // Si el Circuit Breaker devolvió fallback
+            if (datos?.fallback) {
+                logger.warn(`AYT API no disponible para ${station}, usando fallback`);
+                return soloUltimo ? null : [];
+            }
 
             // Retornar solo el último o todos según parámetro
             return soloUltimo ? datos[datos.length - 1] : datos;
         } catch (error) {
             const statusCode = error.response?.status;
-            
+
+            // Si el circuito está abierto, retornar datos vacíos
+            if (error.message && error.message.includes('Breaker is open')) {
+                logger.warn(`Circuit Breaker abierto para AYT ${station}, retornando datos vacíos`);
+                return soloUltimo ? null : [];
+            }
+
             // MANEJO ESPECÍFICO POR CÓDIGO DE ERROR
             if (statusCode === 401) {
                 console.log(`🔄 Error 401 para ${station}, intentando renovar token...`);
@@ -119,10 +159,10 @@ class AytService {
                         aytErrorHandler.handleAuthError(station, new Error('No se pudo obtener un nuevo token'));
                         return soloUltimo ? null : [];
                     }
-                    
+
                     config.headers['Authorization'] = `Bearer ${nuevoToken}`;
-                    const response = await axios.request(config);
-                    const datos = response.data;
+                    // Reintentar con Circuit Breaker
+                    const datos = await this.circuitBreaker.fire(tag, fechaDesde, fechaHasta, config);
                     console.log(`✅ Reintento exitoso para ${station}`);
                     return soloUltimo ? datos[datos.length - 1] : datos;
                 } catch (retryError) {
@@ -145,6 +185,22 @@ class AytService {
                 return soloUltimo ? null : [];
             }
         }
+    }
+
+    /**
+     * Obtener estadísticas del Circuit Breaker
+     */
+    getCircuitBreakerStats() {
+        const stats = this.circuitBreaker.stats;
+        return {
+            name: 'AYT',
+            state: this.circuitBreaker.opened ? 'OPEN' : (this.circuitBreaker.halfOpen ? 'HALF_OPEN' : 'CLOSED'),
+            fires: stats.fires,
+            successes: stats.successes,
+            failures: stats.failures,
+            rejects: stats.rejects,
+            timeouts: stats.timeouts
+        };
     }
 
     transformarRespuesta(tag, datos) {
