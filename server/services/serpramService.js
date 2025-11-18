@@ -4,49 +4,112 @@ const nombreEstaciones = require('../config/nombreEstaciones');
 const nombreVariables = require('../config/nombreVariables');
 const authService = require('./authService');
 const { serpramErrorHandler } = require('../errorHandlers');
+const { createApiCircuitBreaker } = require('../utils/circuitBreaker');
+const logger = require('../config/logger');
 
 class SerpramService {
   constructor() {
     this.dispositivos = ["Mejillones", "Sierra Gorda", "SQM Baquedano", "Maria Elena"];
     this.config = {
-      baseURL: 'https://api.serpram.cl/air_ws/v1/api',
-      token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNS0wNC0yOCAxMTozNDoxNiIsInVzZXJfaWQiOjMxLCJkYXRhIjoxMzU3MDAwMDAwfQ.Qyl5Jbfrypav9zLE6wchfApXom6DUy8e0E-pyVkq93c'
+      baseURL: process.env.SERPRAM_API_URL || 'https://api.serpram.cl/air_ws/v1/api',
+      token: process.env.SERPRAM_TOKEN
     };
+
+    // Validar que el token esté configurado
+    if (!this.config.token) {
+      throw new Error('SERPRAM_TOKEN no está configurado en las variables de entorno');
+    }
+
+    // Crear Circuit Breaker para la API
+    this.circuitBreaker = createApiCircuitBreaker(
+      'SERPRAM',
+      this._makeApiRequest.bind(this),
+      {
+        timeout: 20000, // 20 segundos para SERPRAM
+        errorThresholdPercentage: 50,
+        resetTimeout: 60000 // 1 minuto
+      }
+    );
+
+    logger.info('SerpramService inicializado con Circuit Breaker');
   }
 
+  /**
+   * Método privado que realiza la llamada real a la API
+   * Protegido por Circuit Breaker
+   */
+  async _makeApiRequest(dispositivo, estampaTiempoInicial, estampaTiempoFinal) {
+    // Obtengo token dinámico de authService
+    const token = await authService.getToken();
+
+    const config = {
+      method: 'get',
+      url: `${this.config.baseURL}/getHistorico`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      data: {
+        estampaTiempoInicial,
+        estampaTiempoFinal,
+        tipoMedicion: 1,
+        consulta: [{ dispositivoId: dispositivo }]
+      }
+    };
+
+    const response = await axios.request(config);
+
+    // Usar el errorHandler para manejar la respuesta
+    serpramErrorHandler.handleError(dispositivo, response);
+
+    return response.data;
+  }
+
+  /**
+   * Consultar API de SERPRAM con Circuit Breaker
+   */
   async consultarAPI(dispositivo, timestampDesde = null) {
     try {
       const { estampaTiempoInicial, estampaTiempoFinal } = this.obtenerMarcasDeTiempo(timestampDesde);
-      
-      // Obtengo token dinámico de authService
-      const token = await authService.getToken();
-      
-      const config = {
-        method: 'get',
-        url: `${this.config.baseURL}/getHistorico`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        data: {
-          estampaTiempoInicial,
-          estampaTiempoFinal,
-          tipoMedicion: 1,
-          consulta: [{ dispositivoId: dispositivo }]
-        }
-      };
 
-      const response = await axios.request(config);
-      
-      // Usar el errorHandler para manejar la respuesta
-      serpramErrorHandler.handleError(dispositivo, response);
+      // Usar Circuit Breaker para proteger la llamada
+      const data = await this.circuitBreaker.fire(dispositivo, estampaTiempoInicial, estampaTiempoFinal);
 
-      return this.transformarRespuesta(response.data, dispositivo);
+      // Si el Circuit Breaker devolvió fallback
+      if (data?.fallback) {
+        logger.warn(`SERPRAM API no disponible para ${dispositivo}, usando fallback`);
+        return [];
+      }
+
+      return this.transformarRespuesta(data, dispositivo);
     } catch (error) {
       // Usar el errorHandler para manejar el error
       serpramErrorHandler.handleError(dispositivo, null, error);
+
+      // Si el circuito está abierto, retornar array vacío en lugar de fallar
+      if (error.message && error.message.includes('Breaker is open')) {
+        logger.warn(`Circuit Breaker abierto para SERPRAM, retornando datos vacíos`);
+        return [];
+      }
+
       throw error;
     }
+  }
+
+  /**
+   * Obtener estadísticas del Circuit Breaker
+   */
+  getCircuitBreakerStats() {
+    const stats = this.circuitBreaker.stats;
+    return {
+      name: 'SERPRAM',
+      state: this.circuitBreaker.opened ? 'OPEN' : (this.circuitBreaker.halfOpen ? 'HALF_OPEN' : 'CLOSED'),
+      fires: stats.fires,
+      successes: stats.successes,
+      failures: stats.failures,
+      rejects: stats.rejects,
+      timeouts: stats.timeouts
+    };
   }
 
   transformarRespuesta(data, dispositivo) {

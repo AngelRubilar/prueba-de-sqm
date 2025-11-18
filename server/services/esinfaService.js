@@ -4,6 +4,8 @@ const nombreEstaciones = require('../config/nombreEstaciones');
 const nombreVariables = require('../config/nombreVariables');
 const esinfaAuthService = require('./esinfaAuthService');
 const { esinfaErrorHandler } = require('../errorHandlers');
+const { createApiCircuitBreaker } = require('../utils/circuitBreaker');
+const logger = require('../config/logger');
 
 class EsinfaService {
   constructor() {
@@ -13,13 +15,42 @@ class EsinfaService {
         'Authorization': 'Bearer '
       }
     };
+
+    // Crear Circuit Breaker para la API ESINFA
+    this.circuitBreaker = createApiCircuitBreaker(
+      'ESINFA',
+      this._makeApiRequest.bind(this),
+      {
+        timeout: 15000, // 15 segundos
+        errorThresholdPercentage: 50,
+        resetTimeout: 60000 // 1 minuto
+      }
+    );
+
+    logger.info('EsinfaService inicializado con Circuit Breaker');
   }
 
+  /**
+   * Método privado que realiza la llamada real a la API ESINFA
+   * Protegido por Circuit Breaker
+   */
+  async _makeApiRequest(config) {
+    const response = await axios.request(config);
+
+    // Usar el errorHandler para manejar la respuesta
+    esinfaErrorHandler.handleError(response);
+
+    return response.data;
+  }
+
+  /**
+   * Consultar API de ESINFA con Circuit Breaker
+   */
   async consultarAPI() {
     try {
       // Obtener token actualizado
       const token = await esinfaAuthService.getToken();
-      
+
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -30,35 +61,66 @@ class EsinfaService {
         }
       };
 
-      let response = await axios.request(config);
+      // Usar Circuit Breaker para proteger la llamada
+      const data = await this.circuitBreaker.fire(config);
 
-      if (response.status === 500) {
-        const newToken = await esinfaAuthService.obtenerNuevoToken();
-        config.headers['Authorization'] = `Bearer ${newToken}`;
-        response = await axios.request(config);
+      // Si el Circuit Breaker devolvió fallback
+      if (data?.fallback) {
+        logger.warn(`ESINFA API no disponible, usando fallback`);
+        return [];
       }
 
-      // Usar el errorHandler para manejar la respuesta
-      esinfaErrorHandler.handleError(response);
-
-      return this.transformarRespuesta(response.data);
+      return this.transformarRespuesta(data);
     } catch (error) {
+      // Si el circuito está abierto, retornar array vacío
+      if (error.message && error.message.includes('Breaker is open')) {
+        logger.warn(`Circuit Breaker abierto para ESINFA, retornando datos vacíos`);
+        return [];
+      }
+
+      // Manejo de error 500 con renovación de token
       if (error.response && error.response.status === 500) {
         try {
           const newToken = await esinfaAuthService.obtenerNuevoToken();
-          this.config.headers['Authorization'] = `Bearer ${newToken}`;
-          const response = await axios.request(this.config);
-          return this.transformarRespuesta(response.data);
+          const config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: this.config.baseURL,
+            headers: {
+              ...this.config.headers,
+              'Authorization': `Bearer ${newToken}`
+            }
+          };
+          // Reintentar con Circuit Breaker
+          const data = await this.circuitBreaker.fire(config);
+          return this.transformarRespuesta(data);
         } catch (retryError) {
           // Usar el errorHandler para manejar el error de reintento
           esinfaErrorHandler.handleError(null, retryError);
-          throw retryError;
+          return [];
         }
       }
+
       // Usar el errorHandler para manejar el error original
       esinfaErrorHandler.handleError(null, error);
-      throw error;
+      return [];
     }
+  }
+
+  /**
+   * Obtener estadísticas del Circuit Breaker
+   */
+  getCircuitBreakerStats() {
+    const stats = this.circuitBreaker.stats;
+    return {
+      name: 'ESINFA',
+      state: this.circuitBreaker.opened ? 'OPEN' : (this.circuitBreaker.halfOpen ? 'HALF_OPEN' : 'CLOSED'),
+      fires: stats.fires,
+      successes: stats.successes,
+      failures: stats.failures,
+      rejects: stats.rejects,
+      timeouts: stats.timeouts
+    };
   }
 
   transformarRespuesta(data) {
