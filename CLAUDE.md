@@ -1,4 +1,4 @@
-# Contexto del Proyecto SQM - Sistema de Monitoreo Ambiental
+# Guía Completa del Proyecto SQM - Sistema de Monitoreo Ambiental
 
 ## Descripción General
 
@@ -250,6 +250,49 @@ const moment = require('moment-timezone');
 const now = moment().tz('America/Santiago');
 ```
 
+## Convenciones de Commits
+
+### Formato Obligatorio
+
+Este proyecto usa **Conventional Commits** sin emojis ni referencias a herramientas:
+
+```
+<type>: <descripción concisa>
+
+[cuerpo opcional con detalles]
+```
+
+### Types Permitidos
+
+- `feat:` - Nueva funcionalidad
+- `fix:` - Corrección de bugs
+- `docs:` - Cambios en documentación
+- `refactor:` - Refactorización de código
+- `perf:` - Mejoras de performance
+- `test:` - Agregar o modificar tests
+- `chore:` - Tareas de mantenimiento
+- `style:` - Cambios de formato/estilo
+
+### Ejemplos Correctos
+
+```bash
+feat: Implementar autenticación JWT para API
+fix: Corregir timezone en consultas SERPRAM
+docs: Actualizar README con instrucciones de Redis
+refactor: Separar lógica de negocio en services
+```
+
+### ❌ NO Hacer
+
+- **NO usar emojis** en mensajes de commit
+- **NO agregar** "Generated with Claude Code" o similares
+- **NO agregar** "Co-Authored-By: Claude"
+- **NO usar** prefijos como [feat], [fix] con corchetes (usar dos puntos)
+
+### ✅ Regla General
+
+**Los commits deben ser profesionales, concisos y sin referencias a las herramientas usadas para generarlos.**
+
 ## Comandos Importantes
 
 ### Desarrollo
@@ -474,37 +517,6 @@ JWT_SECRET=valor_generado
 - Humedad relativa
 - Presión barométrica
 
-## Convenciones de Commits
-
-### Formato Obligatorio
-
-Este proyecto usa **Conventional Commits** sin emojis ni referencias a herramientas:
-
-```
-<type>: <descripción concisa>
-
-[cuerpo opcional con detalles]
-```
-
-### Types Permitidos
-
-- `feat:` - Nueva funcionalidad
-- `fix:` - Corrección de bugs
-- `docs:` - Cambios en documentación
-- `refactor:` - Refactorización de código
-- `perf:` - Mejoras de performance
-- `test:` - Agregar o modificar tests
-- `chore:` - Tareas de mantenimiento
-
-### ❌ NO Hacer en Commits
-
-- **NO usar emojis** en mensajes de commit
-- **NO agregar** "Generated with Claude Code" o similares
-- **NO agregar** "Co-Authored-By: Claude"
-- **NO usar** prefijos como [feat], [fix] con corchetes
-
-**IMPORTANTE: Los commits deben ser profesionales, concisos y sin referencias a las herramientas usadas para generarlos.**
-
 ## Contacto y Soporte
 
 **Repositorio:** https://github.com/AngelRubilar/prueba-de-sqm
@@ -515,64 +527,3 @@ Este proyecto usa **Conventional Commits** sin emojis ni referencias a herramien
 
 **Última actualización:** 2025-11-17
 **Versión:** 1.0 (Post Fase 1 - Semana 1-2)
-
----
-
-## Directivas para Revisión de Código (GitHub Actions)
-
-### Prioridades en Code Review
-
-Cuando Claude revise PRs en GitHub, debe enfocarse en:
-
-1. **Seguridad Crítica:**
-   - Nunca aprobar código con credenciales hardcodeadas
-   - Verificar que las variables de entorno se usen correctamente
-   - Validar que no haya SQL injection, XSS, o command injection
-   - Confirmar que los tokens/passwords usen bcrypt o similar
-   - Verificar CORS y headers de seguridad
-
-2. **Arquitectura en Capas:**
-   - Controllers solo deben manejar HTTP (req, res, next)
-   - Services contienen lógica de negocio
-   - Repositories acceden a DB/Redis
-   - No mezclar responsabilidades entre capas
-
-3. **Patrones Obligatorios:**
-   - Usar async/await (NO callbacks)
-   - Timezone siempre America/Santiago con moment-timezone
-   - Redis para estado (NO archivos JSON)
-   - Pools MySQL reader/writer correctamente
-   - Error handling con try/catch y next(error)
-
-4. **Performance:**
-   - Operaciones asíncronas no bloqueantes
-   - Cache en Redis para datos frecuentes
-   - Batch inserts cuando sea posible
-   - Índices en queries frecuentes
-
-5. **Logging y Monitoreo:**
-   - Winston logger en lugar de console.log
-   - Niveles apropiados (info, warn, error)
-   - Metadata útil en logs
-
-### Checklist de Aprobación
-
-Antes de aprobar un PR, verificar:
-
-- [ ] Sin credenciales hardcodeadas
-- [ ] Arquitectura en capas respetada
-- [ ] Error handling implementado
-- [ ] Logging apropiado (Winston)
-- [ ] Timezone correcto (America/Santiago)
-- [ ] Sin operaciones bloqueantes
-- [ ] Tests incluidos (cuando aplique)
-- [ ] Documentación actualizada si cambió API
-
-### Rechazar Automáticamente Si:
-
-- Credenciales en código
-- SQL queries sin prepared statements
-- Uso de eval() o Function()
-- Dependencias con vulnerabilidades conocidas
-- Código que bloquea el event loop
-- Uso de fs.writeFileSync() para estado
