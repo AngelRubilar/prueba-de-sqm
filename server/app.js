@@ -22,6 +22,7 @@ const mqttService = new MqttService();
 // Rutas Api Rest
 const apiRoutes = require('./routes/apiRoutes');
 const healthRoutes = require('./routes/healthRoutes');
+const queueRoutes = require('./routes/queueRoutes');
 
 const forecastScheduler = require('./services/forecastScheduler');
 const AverageScheduler = require('./services/averageScheduler');
@@ -77,6 +78,9 @@ app.use('/health', healthRoutes);
 
 // Rutas de API (con autenticación)
 app.use('/api', apiRoutes);
+
+// Rutas de gestión de colas (con autenticación)
+app.use('/api/queues', queueRoutes);
 
 // Función para ejecutar Serpram
 async function ejecutarSerpram() {
