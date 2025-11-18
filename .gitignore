@@ -41,7 +41,7 @@ store.json
 # SECURITY_AUDIT_REPORT.md
 # *_AUDIT_*.md
 
-# Archivos de Claude - No commitear configuraciones de IA
-.clauderc
-claude.md
+# Archivos de Claude - No commitear configuraciones de IA locales
+# .clauderc se versiona porque contiene instrucciones del proyecto
+# claude.md se versiona si existe como documentación
 .clinerules
