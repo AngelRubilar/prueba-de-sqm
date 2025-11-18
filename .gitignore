@@ -1,7 +1,6 @@
 # Node modules
-node_modules/  # <-- Quita la barra inicial (/)
-# O, si quieres ser más explícito para cualquier nivel:
-# **/node_modules/
+node_modules/
+**/node_modules/
 
 # IDEs and editors
 .vscode/
@@ -10,15 +9,39 @@ node_modules/  # <-- Quita la barra inicial (/)
 # OS / IDE
 .DS_Store
 Thumbs.db
-# .vscode/ # Ya lo tienes arriba, puedes eliminar esta línea duplicada
-# .idea/   # Ya lo tienes arriba, puedes eliminar esta línea duplicada
 
-# Variables de entorno
+# Variables de entorno - CRÍTICO: Nunca commitear archivos con credenciales
 .env
+.env.local
+.env.*.local
+**/.env
+**/server/.env
 
-# Logs y archivos generados (añadimos los que vimos antes)
+# Logs y archivos generados
 logs/
 *.log
-node_modules
 
+# Archivos SQL y bases de datos
 *.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de prueba y temporales
+server/test-*.js
+test-*.js
+store.json
+**/store.json
+
+# Package locks (opcional, comentar si quieres versionarlos)
+# package-lock.json
+# yarn.lock
+
+# Reportes y documentación temporal (descomentar si no quieres versionarlos)
+# SECURITY_AUDIT_REPORT.md
+# *_AUDIT_*.md
+
+# Archivos de Claude - No commitear configuraciones de IA locales
+# .clauderc se versiona porque contiene instrucciones del proyecto
+# claude.md se versiona si existe como documentación
+.clinerules
